@@ -9,6 +9,7 @@ import VoiceStatus from "../components/VoiceStatus";
 import ReadingView from "../components/ReadingView";
 import FormulaView from "../components/FormulaView";
 import VisualView, { type VisualViewHandle } from "../components/VisualView";
+import BigButtons from "../components/BigButtons";
 
 interface Props {
   manifest: DocumentManifest;
@@ -150,6 +151,8 @@ function TutorContent() {
           <VisualView ref={visualRef} speak={voice.speak} />
         )}
       </main>
+
+      <BigButtons speak={voice.speak} visualRef={visualRef} />
     </div>
   );
 }

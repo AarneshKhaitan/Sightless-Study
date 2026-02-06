@@ -1,0 +1,44 @@
+.bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  background: #111;
+  z-index: 1000;
+}
+
+.btn {
+  flex: 1;
+  min-height: 80px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  transition: opacity 0.1s;
+}
+
+.btn:active {
+  opacity: 0.7;
+}
+
+.next {
+  background: #4cc9f0;
+  color: #111;
+}
+
+.repeat {
+  background: #7209b7;
+}
+
+.help {
+  background: #f72585;
+}
+
+.back {
+  background: #555;
+}
