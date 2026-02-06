@@ -194,6 +194,121 @@ Respond with ONLY valid JSON:
 
         return parsed
 
+    # --- Module Extraction (for any PDF) ---
+
+    async def _invoke_with_image(self, prompt: str, image_base64: str) -> str:
+        """Invoke the LLM with a text prompt and a base64-encoded image."""
+        from langchain_core.messages import HumanMessage
+
+        message = HumanMessage(
+            content=[
+                {"type": "text", "text": prompt},
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{image_base64}",
+                    },
+                },
+            ]
+        )
+        result = await self.llm.ainvoke([message])
+        return str(result.content)
+
+    async def extract_formulas_from_text(
+        self, page_no: int, page_text: str
+    ) -> list[dict[str, Any]]:
+        """Extract formula modules from a page's text content."""
+        prompt = f"""You are an accessibility-first tutor analyzing lecture notes.
+
+Analyze the following text from page {page_no} of a lecture PDF. Identify ALL mathematical formulas, equations, or mathematical expressions present.
+
+For each formula found, produce a structured JSON object with:
+- expression: the formula written in plain text (e.g., "E = mc^2", "softmax(z_i) = exp(z_i) / sum_j exp(z_j)")
+- purpose: a one-sentence description of what this formula does or represents
+- symbols: an array of {{"sym": "...", "meaning": "..."}} for each variable/symbol
+- example: a brief worked example with concrete numbers (1-2 sentences)
+
+Page text:
+---
+{page_text}
+---
+
+Rules:
+- Only extract actual mathematical formulas/equations, not prose descriptions.
+- If no formulas are found, return an empty array.
+- Use plain ASCII text for the expression field.
+- Keep purpose to one sentence and example brief.
+
+Respond with ONLY valid JSON:
+{{"formulas": [...]}}"""
+
+        raw = await self._invoke(prompt)
+        parsed = _parse_json(raw)
+        return parsed.get("formulas", [])
+
+    async def analyze_page_image(
+        self, page_no: int, page_text: str, image_base64: str
+    ) -> list[dict[str, Any]]:
+        """Analyze a page image to detect and describe visual elements."""
+        prompt = f"""You are an accessibility-first tutor analyzing a lecture slide/page image.
+
+Look at this image from page {page_no} of a lecture PDF. The text on this page is:
+---
+{page_text[:500]}
+---
+
+Identify any visual elements: graphs, charts, diagrams, flowcharts, or pipelines.
+For each visual found, determine its type and produce structured data.
+
+TYPE "line_graph" — for line charts, curves, scatter plots with trends:
+{{
+  "type": "line_graph",
+  "title": "descriptive title",
+  "description": "1-2 sentence description",
+  "data": {{
+    "xMin": <number>, "xMax": <number>,
+    "xLabel": "axis label", "yLabel": "axis label",
+    "points": [[x1,y1], [x2,y2], ...],
+    "features": {{
+      "min": [{{"x": <number>, "y": <number>}}],
+      "peak": [{{"x": <number>, "y": <number>}}],
+      "inflection": [{{"x": <number>, "y": <number>}}]
+    }}
+  }}
+}}
+For points: provide 15-30 representative [x,y] pairs capturing the curve shape.
+For features: identify min, max/peak, and inflection points. Use empty arrays if N/A.
+
+TYPE "flowchart" — for flowcharts, pipelines, process diagrams, block diagrams:
+{{
+  "type": "flowchart",
+  "title": "descriptive title",
+  "description": "1-2 sentence description",
+  "data": {{
+    "nodes": [
+      {{"id": "n1", "label": "short label", "x": 0.15, "y": 0.5, "r": 0.08, "desc": "1-sentence description"}},
+      ...
+    ],
+    "edges": [["n1", "n2"], ...],
+    "keyNodes": ["n1", ...]
+  }}
+}}
+For nodes: x and y are normalized 0.0-1.0 coordinates. r is radius (use 0.08). Identify 1-2 key nodes.
+
+Rules:
+- Only identify clear visual elements, not decorative images or logos.
+- If no visuals found, return an empty array.
+- Only use types "line_graph" or "flowchart". Skip anything else.
+- For line graphs, estimate data points from the visual as accurately as possible.
+- For flowcharts, capture all visible nodes and connections.
+
+Respond with ONLY valid JSON:
+{{"visuals": [...]}}"""
+
+        raw = await self._invoke_with_image(prompt, image_base64)
+        parsed = _parse_json(raw)
+        return parsed.get("visuals", [])
+
     # --- Free-form Chat ---
 
     async def chat(self, message: str, context: str = "") -> str:

@@ -1,6 +1,6 @@
 """DocumentSource protocol: abstracts where documents come from.
 
-MVP: DemoSource (JSON files) + UploadSource (PDF upload, stubbed parsing).
+MVP: DemoSource (JSON files) + UploadSource (PDF upload with AI module extraction).
 Future: GoogleDriveSource, OneDriveSource.
 """
 
@@ -27,7 +27,7 @@ class IngestedDocument:
 
 @runtime_checkable
 class DocumentSource(Protocol):
-    def ingest(self) -> IngestedDocument: ...
+    async def ingest(self) -> IngestedDocument: ...
 
 
 class DemoSource:
@@ -36,7 +36,7 @@ class DemoSource:
     def __init__(self, doc_id: str):
         self.doc_id = doc_id
 
-    def ingest(self) -> IngestedDocument:
+    async def ingest(self) -> IngestedDocument:
         from services.demo_store import get_manifest, get_chunks, get_formulas, get_visuals
 
         manifest = get_manifest(self.doc_id)
@@ -49,16 +49,16 @@ class DemoSource:
 
 
 class UploadSource:
-    """Parses an uploaded PDF into manifest + chunks.
+    """Parses an uploaded PDF into manifest + chunks + formula/visual modules.
 
-    MVP: uses PyMuPDF for text extraction. Formula/visual modules are empty
-    (those require structured JSON in demo mode).
+    Uses AI to detect formulas from text and visuals from page images.
+    Falls back to empty modules if AI is unavailable.
     """
 
     def __init__(self, filename: str, pdf_bytes: bytes):
         self.filename = filename
         self.pdf_bytes = pdf_bytes
 
-    def ingest(self) -> IngestedDocument:
-        from services.pdf_parser import parse_pdf
-        return parse_pdf(self.filename, self.pdf_bytes)
+    async def ingest(self) -> IngestedDocument:
+        from services.pdf_parser import parse_pdf_with_modules
+        return await parse_pdf_with_modules(self.filename, self.pdf_bytes)

@@ -1,14 +1,17 @@
 """PDF text extraction using PyMuPDF.
 
 Extracts text page-by-page and chunks by paragraph breaks.
-Returns an IngestedDocument with manifest + chunks (no formula/visual modules).
+Optionally extracts formula and visual modules via AI.
 """
 
+import logging
 import uuid
 
 import fitz  # PyMuPDF
 
 from models import DocumentManifest, Chunk, Page, Source
+
+logger = logging.getLogger(__name__)
 
 
 def parse_pdf(filename: str, pdf_bytes: bytes):
@@ -67,3 +70,37 @@ def parse_pdf(filename: str, pdf_bytes: bytes):
         formulas=[],
         visuals=[],
     )
+
+
+async def parse_pdf_with_modules(filename: str, pdf_bytes: bytes):
+    """Parse a PDF and extract formula/visual modules via AI.
+    Falls back to empty modules if AI is unavailable or fails."""
+    from services.module_extractor import extract_all_modules
+
+    result = parse_pdf(filename, pdf_bytes)
+
+    # Collect page texts for module extraction
+    page_texts: dict[int, str] = {}
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    for page_idx in range(len(doc)):
+        page = doc[page_idx]
+        page_texts[page_idx + 1] = page.get_text("text").strip()
+    doc.close()
+
+    try:
+        formulas, visuals, page_module_refs = await extract_all_modules(
+            pdf_bytes, page_texts
+        )
+        result.formulas = formulas
+        result.visuals = visuals
+
+        # Update manifest pages with module references
+        for page in result.manifest.pages:
+            refs = page_module_refs.get(page.pageNo, [])
+            if refs:
+                page.modules = refs
+
+    except Exception as e:
+        logger.warning("Module extraction failed, returning basic parse: %s", e)
+
+    return result

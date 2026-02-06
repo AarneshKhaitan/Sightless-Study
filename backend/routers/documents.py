@@ -31,7 +31,7 @@ async def upload_document(file: UploadFile):
     try:
         from services.document_source import UploadSource
         source = UploadSource(file.filename, pdf_bytes)
-        result = source.ingest()
+        result = await source.ingest()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF parsing failed: {e}")
 
@@ -49,6 +49,8 @@ async def upload_document(file: UploadFile):
         "title": result.manifest.title,
         "pageCount": len(result.manifest.pages),
         "chunkCount": len(result.chunks),
+        "formulaCount": len(result.formulas),
+        "visualCount": len(result.visuals),
     }
 
 
