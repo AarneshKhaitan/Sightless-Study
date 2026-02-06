@@ -1,6 +1,6 @@
 # Sightless Study
 
-A voice-first web application for visually impaired and low-vision university students. Upload a lecture PDF and get guided reading, grounded Q&A, formula tutoring, and interactive visual exploration — all controlled by voice.
+A voice-first web application for visually impaired and low-vision university students. Upload a lecture PDF and get guided reading, grounded Q&A, formula tutoring, and interactive visual exploration — all controlled by voice. Content is delivered in small, structured chunks to help manage cognitive overload, ensuring students can absorb material at their own pace without being overwhelmed.
 
 ## Features
 
