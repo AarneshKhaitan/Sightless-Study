@@ -24,6 +24,10 @@ logger = logging.getLogger(__name__)
 _current_state: VoiceState | None = None
 _current_context: dict[str, Any] = {}
 
+# ─── Conversation history for follow-up Q&A (keyed by docId) ───
+_conversation_history: dict[str, list[dict[str, str]]] = {}
+MAX_HISTORY = 10
+
 
 def _get_state() -> VoiceState:
     assert _current_state is not None
@@ -44,19 +48,29 @@ def reading_control(command: str) -> str:
     Commands (pass EXACTLY one of these strings):
     - "next": advance to next chunk. Use for: continue, next, keep going, go on, move on, go ahead, carry on.
     - "back": go to previous chunk. Use for: go back, back, previous.
-    - "where_am_i": tell current position. Use for: where am I, what page, current position.
+    - "where_am_i": tell current position and remaining. Use for: where am I, what page, current position, how much is left, how many pages.
     - "repeat": repeat current chunk. Use for: repeat, say that again, again, one more time.
     - "help": list available commands. Use for: help, options, what can I say.
     - "stop": stop speaking. Use for: stop, quiet, silence, pause, shut up.
     - "summarize": summarize the current page. Use for: summarize, summary, overview.
+    - "end": exit the lecture notes. Use for: end, finish, exit, I'm done reading, close, done.
     """
     st = _get_state()
     ctx = _get_context()
     chunk_text = ctx.get("chunk_text", "")
     total_chunks = ctx.get("total_chunks", 0)
     total_pages = ctx.get("total_pages", 0)
+    pages_remaining = ctx.get("pages_remaining", 0)
+    chunks_remaining = ctx.get("chunks_remaining", 0)
+    is_last_page = ctx.get("is_last_page", False)
+    is_last_chunk = ctx.get("is_last_chunk", False)
 
     if command == "next":
+        if is_last_page and is_last_chunk:
+            return json.dumps({
+                "action": None,
+                "speech": "You have reached the end of the document. Say End to exit, or Go back to review.",
+            })
         return json.dumps({
             "action": "NEXT_CHUNK",
             "speech": None,  # Frontend reads the new chunk
@@ -69,9 +83,16 @@ def reading_control(command: str) -> str:
         })
 
     if command == "where_am_i":
+        pos = f"You are on page {st.pageNo} of {total_pages}, chunk {st.chunkIndex + 1} of {total_chunks}."
+        if is_last_page and is_last_chunk:
+            pos += " This is the last chunk of the last page."
+        elif is_last_page:
+            pos += f" This is the last page. {chunks_remaining} chunks remaining."
+        else:
+            pos += f" {pages_remaining} pages remaining."
         return json.dumps({
             "action": None,
-            "speech": f"You are on page {st.pageNo}, chunk {st.chunkIndex + 1} of {total_chunks}.",
+            "speech": pos,
         })
 
     if command == "repeat":
@@ -100,16 +121,26 @@ def reading_control(command: str) -> str:
             "speech": None,  # Will be handled by frontend or a separate call
         })
 
+    if command == "end":
+        return json.dumps({
+            "action": "END_LECTURE",
+            "speech": "Ending the lecture. Great job!",
+        })
+
     return json.dumps({"action": None, "speech": "I didn't understand that reading command."})
 
 
 @tool
 def ask_question(question: str) -> str:
     """Answer a question about the document content using the provided context chunks.
-    Use this when the student asks a question about what they're reading."""
+    Use this when the student asks a question about what they're reading,
+    or when they ask a follow-up question about a previous answer."""
     ctx = _get_context()
     chunks = ctx.get("nearby_chunks", [])
     st = _get_state()
+
+    # Get conversation history for context
+    history = _conversation_history.get(st.docId, [])
 
     # Try AI-powered Q&A first
     try:
@@ -118,11 +149,22 @@ def ask_question(question: str) -> str:
         if ai is not None:
             import asyncio
             chunk_dicts = [{"chunkId": c["chunkId"], "pageNo": c["pageNo"], "text": c["text"]} for c in chunks]
-            # We're already in async context but tool functions are sync —
-            # use the existing event loop
+
+            # Build question with conversation history for follow-ups
+            full_question = question
+            if history:
+                history_text = "\n".join(
+                    f"Student: {h['q']}\nTutor: {h['a']}" for h in history[-5:]
+                )
+                full_question = f"Previous conversation:\n{history_text}\n\nNew question: {question}"
+
             loop = asyncio.get_event_loop()
-            result = loop.run_until_complete(ai.generate_grounded_qa(question, chunk_dicts))
+            result = loop.run_until_complete(ai.generate_grounded_qa(full_question, chunk_dicts))
             answer = result.get("answer", "I couldn't find an answer.")
+
+            # Record in history
+            _record_qa(st.docId, question, answer)
+
             return json.dumps({
                 "action": "ENTER_QA",
                 "speech": answer,
@@ -135,10 +177,23 @@ def ask_question(question: str) -> str:
     from services.qa_engine import answer_question
     chunk_models = [Chunk(**c) for c in chunks]
     result = answer_question(question, chunk_models, st.pageNo)
+
+    _record_qa(st.docId, question, result.answer)
+
     return json.dumps({
         "action": "ENTER_QA",
         "speech": result.answer,
     })
+
+
+def _record_qa(doc_id: str, question: str, answer: str) -> None:
+    """Store a Q&A pair in conversation history."""
+    if doc_id not in _conversation_history:
+        _conversation_history[doc_id] = []
+    _conversation_history[doc_id].append({"q": question, "a": answer})
+    # Trim to max
+    if len(_conversation_history[doc_id]) > MAX_HISTORY:
+        _conversation_history[doc_id] = _conversation_history[doc_id][-MAX_HISTORY:]
 
 
 @tool
@@ -310,7 +365,8 @@ def _build_system_prompt(state: VoiceState, context: dict[str, Any]) -> str:
 - "repeat"/"again"/"say that again" -> reading_control(command="repeat")
 - "help"/"options"/"what can I say" -> reading_control(command="help")
 - "stop"/"quiet"/"silence" -> reading_control(command="stop")
-- "summarize"/"summary" -> reading_control(command="summarize")"""
+- "summarize"/"summary" -> reading_control(command="summarize")
+- "end"/"finish"/"exit"/"I'm done reading" -> reading_control(command="end")"""
 
     formula_info = f"\nFormula step: {state.formulaStep}" if state.formulaStep else ""
     text_info = f'\nCurrent text: "{chunk_text[:200]}"' if chunk_text else ""
@@ -324,6 +380,7 @@ Given the student's voice command, decide which tool to call.
 {mode_block}
 
 Use ask_question when the student asks about the content (e.g. "what does this mean", "explain this", questions starting with what/how/why).
+The student can also ask follow-up questions about previous answers — always use ask_question for these too.
 
 If the command is conversational or doesn't match any tool, respond directly in 1-2 spoken sentences.
 Keep all responses concise -- they will be spoken aloud.

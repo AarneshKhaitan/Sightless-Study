@@ -39,10 +39,22 @@ def _build_context(app_state: VoiceState) -> dict:
         for c in nearby
     ]
 
+    all_pages = sorted(set(c.pageNo for c in chunks))
+    total_pages = len(all_pages)
+    current_page_idx = all_pages.index(app_state.pageNo) if app_state.pageNo in all_pages else 0
+    pages_remaining = total_pages - current_page_idx - 1
+    chunks_remaining = len(page_chunks) - app_state.chunkIndex - 1
+    is_last_page = pages_remaining == 0
+    is_last_chunk = chunks_remaining == 0
+
     return {
         "chunk_text": chunk_text,
         "total_chunks": len(page_chunks),
-        "total_pages": len(set(c.pageNo for c in chunks)),
+        "total_pages": total_pages,
+        "pages_remaining": pages_remaining,
+        "chunks_remaining": chunks_remaining,
+        "is_last_page": is_last_page,
+        "is_last_chunk": is_last_chunk,
         "nearby_chunks": nearby_dicts,
     }
 

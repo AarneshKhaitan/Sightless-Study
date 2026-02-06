@@ -6,8 +6,12 @@ interface Props {
 }
 
 export default function ReadingView({ speak }: Props) {
-  const { currentChunk, pageChunks, state } = useTutor();
+  const { currentChunk, pageChunks, state, manifest } = useTutor();
   const spokenChunkRef = useRef<string | null>(null);
+
+  const totalPages = manifest.pages.length;
+  const isLastPage = state.pageNo >= totalPages;
+  const isLastChunk = state.chunkIndex >= pageChunks.length - 1;
 
   // Speak the current chunk when it changes
   useEffect(() => {
@@ -15,10 +19,14 @@ export default function ReadingView({ speak }: Props) {
     if (spokenChunkRef.current === currentChunk.chunkId) return;
     spokenChunkRef.current = currentChunk.chunkId;
 
-    const prompt =
-      "Say Continue, Repeat, Question, Summarize, Where am I, or Help.";
-    speak(`${currentChunk.text}. ${prompt}`);
-  }, [currentChunk, speak]);
+    let suffix: string;
+    if (isLastPage && isLastChunk) {
+      suffix = "This is the end of the document. Say End to finish, or Go back to review.";
+    } else {
+      suffix = `Chunk ${state.chunkIndex + 1} of ${pageChunks.length}. Say Continue or ask a question.`;
+    }
+    speak(`${currentChunk.text}. ${suffix}`);
+  }, [currentChunk, speak, isLastPage, isLastChunk, state.chunkIndex, pageChunks.length]);
 
   if (!currentChunk) {
     return (

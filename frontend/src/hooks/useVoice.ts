@@ -3,6 +3,7 @@ import { useTutor } from "../context/TutorContext";
 import * as tts from "../services/tts";
 import * as recorder from "../services/recorder";
 import { sendVoice, type VoiceResult } from "../api/client";
+import { muteNarration, unmuteNarration } from "../services/narrationThrottle";
 
 export type VoiceState = "IDLE" | "RECORDING" | "PROCESSING" | "SPEAKING";
 
@@ -28,10 +29,12 @@ export function useVoice(
 
   const speak = useCallback(async (text: string) => {
     setVoiceState("SPEAKING");
+    muteNarration();
     try {
       await tts.speak(text);
     } finally {
       setVoiceState("IDLE");
+      unmuteNarration();
     }
   }, []);
 
@@ -57,6 +60,7 @@ export function useVoice(
     } catch (err) {
       console.error("Voice processing error:", err);
       setVoiceState("IDLE");
+      unmuteNarration();
     }
   }, []);
 
@@ -65,6 +69,7 @@ export function useVoice(
     busyRef.current = true;
 
     try {
+      muteNarration();
       await recorder.startRecording();
       setVoiceState("RECORDING");
     } catch (err) {

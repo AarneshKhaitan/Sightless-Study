@@ -14,6 +14,7 @@ interface Props {
   chunks: Chunk[];
   formulas: FormulaModule[];
   visuals: VisualModule[];
+  onExit?: () => void;
 }
 
 // Map orchestrator action strings to reducer dispatch calls
@@ -44,7 +45,7 @@ const VISUAL_SPECIALS = new Set([
   "QUICK_EXIT_VISUAL",
 ]);
 
-function TutorContent() {
+function TutorContent({ onExit }: { onExit?: () => void }) {
   const { state, pageChunks, manifest, dispatch } = useTutor();
   const visualRef = useRef<VisualViewHandle>(null);
   const [hasStarted, setHasStarted] = useState(false);
@@ -79,6 +80,10 @@ function TutorContent() {
           const pageText = pageChunks.map((c) => c.text).join(" ");
           doSpeak(`Summary of this page: ${pageText}`);
           return; // Don't speak again below
+        } else if (action === "END_LECTURE") {
+          if (speech) doSpeak(speech);
+          setTimeout(() => onExit?.(), 3000);
+          return;
         }
       }
 
@@ -100,7 +105,7 @@ function TutorContent() {
         doSpeak(speech);
       }
     },
-    [state, pageChunks, dispatch]
+    [state, pageChunks, dispatch, onExit]
   );
 
   const voice = useVoice(handleVoiceResult, hasStarted);
@@ -197,7 +202,7 @@ function TutorContent() {
   );
 }
 
-export default function TutorPage({ manifest, chunks, formulas, visuals }: Props) {
+export default function TutorPage({ manifest, chunks, formulas, visuals, onExit }: Props) {
   return (
     <TutorProvider
       manifest={manifest}
@@ -205,7 +210,7 @@ export default function TutorPage({ manifest, chunks, formulas, visuals }: Props
       formulas={formulas}
       visuals={visuals}
     >
-      <TutorContent />
+      <TutorContent onExit={onExit} />
     </TutorProvider>
   );
 }

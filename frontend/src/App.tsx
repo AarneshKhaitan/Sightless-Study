@@ -27,6 +27,7 @@ export default function App() {
       chunks={data.chunks}
       formulas={data.formulas}
       visuals={data.visuals}
+      onExit={() => setData(null)}
     />
   );
 }
