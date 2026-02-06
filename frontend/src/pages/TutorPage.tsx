@@ -8,6 +8,7 @@ import { askQuestion } from "../api/client";
 import VoiceStatus from "../components/VoiceStatus";
 import ReadingView from "../components/ReadingView";
 import FormulaView from "../components/FormulaView";
+import VisualView, { type VisualViewHandle } from "../components/VisualView";
 
 interface Props {
   manifest: DocumentManifest;
@@ -18,6 +19,7 @@ interface Props {
 
 function TutorContent() {
   const { state, currentChunk, pageChunks, manifest, dispatch } = useTutor();
+  const visualRef = useRef<VisualViewHandle>(null);
 
   // Use a ref for speak so handleIntent always has the latest version
   const speakRef = useRef<(text: string) => Promise<void>>(async () => {});
@@ -88,6 +90,14 @@ function TutorContent() {
             doSpeak(`Summary of this page: ${pageText}`);
           }
           break;
+        case "START_EXPLORING":
+        case "WHAT_IS_HERE":
+        case "MARK_THIS":
+        case "GUIDE_TO":
+        case "IM_DONE":
+        case "NEXT_KEY_POINT":
+          visualRef.current?.handleVisualIntent(intent.special, intent.payload);
+          break;
         default:
           break;
       }
@@ -137,11 +147,7 @@ function TutorContent() {
         )}
 
         {state.mode === "VISUAL" && (
-          <div>
-            <p style={{ fontSize: "1.5rem", color: "#4cc9f0" }}>
-              Visual Explorer — {state.modeId}
-            </p>
-          </div>
+          <VisualView ref={visualRef} speak={voice.speak} />
         )}
       </main>
     </div>
