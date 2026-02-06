@@ -136,3 +136,13 @@ class ReflectResponse(BaseModel):
     reflection: str
     takeaway: str
     nextSuggestion: str
+
+
+class FormulaExplainRequest(BaseModel):
+    docId: str
+    formulaId: str
+    section: str  # purpose | symbols | example | intuition
+
+
+class FormulaExplainResponse(BaseModel):
+    text: str

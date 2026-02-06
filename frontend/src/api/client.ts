@@ -74,6 +74,20 @@ export async function uploadPDF(
   return res.json();
 }
 
+export async function explainFormula(
+  docId: string,
+  formulaId: string,
+  section: string
+): Promise<{ text: string }> {
+  const res = await fetch(`${BASE}/modules/formulas/explain`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ docId, formulaId, section }),
+  });
+  if (!res.ok) throw new Error(`Explain error ${res.status}`);
+  return res.json();
+}
+
 export async function postReflection(
   docId: string,
   visualId: string,

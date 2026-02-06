@@ -44,14 +44,6 @@ export function useVoice(
       setLastTranscript(transcript);
       const intent = parseIntent(transcript, stateRef.current.mode);
 
-      if (!intent.action && !intent.special) {
-        // Not recognized
-        speakAndResume(
-          "I didn't catch that. Say Help to hear your options."
-        );
-        return;
-      }
-
       setVoiceState("EXECUTING");
       onIntentRef.current(intent, transcript);
     },

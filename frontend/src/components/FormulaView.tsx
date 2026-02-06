@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useTutor } from "../context/TutorContext";
 import type { FormulaModule } from "../types";
+import { formulaToSpeech } from "../services/formulaToSpeech";
+import { explainFormula } from "../api/client";
 
 interface Props {
   speak: (text: string) => Promise<void>;
@@ -14,39 +16,39 @@ export default function FormulaView({ speak }: Props) {
     (f) => f.formulaId === state.modeId
   );
 
+  // Deterministic fallback text for each step
+  function fallbackText(f: FormulaModule, step: string | null): string {
+    const spoken = formulaToSpeech(f.expression);
+    switch (step) {
+      case "symbols": {
+        const symbolText = f.symbols
+          .map((s) => `${s.sym} means ${s.meaning}`)
+          .join(". ");
+        return `Symbols: ${symbolText}.`;
+      }
+      case "example":
+        return `Example: ${f.example}`;
+      case "intuition":
+        return `In other words, ${f.purpose}`;
+      case "purpose":
+      default:
+        return `A formula is here. ${spoken}. ${f.purpose}. Say Symbols, Example, Intuition, Repeat, or Continue.`;
+    }
+  }
+
   // Speak on entry or when formulaStep changes
   useEffect(() => {
     if (!formula) return;
-    const key = `${formula.formulaId}-${state.formulaStep}`;
+    const step = state.formulaStep ?? "purpose";
+    const key = `${formula.formulaId}-${step}`;
     if (spokenRef.current === key) return;
     spokenRef.current = key;
 
-    switch (state.formulaStep) {
-      case "purpose":
-        speak(
-          `A formula is here. ${formula.expression}. ${formula.purpose}. Say Symbols, Example, Intuition, Repeat, or Continue.`
-        );
-        break;
-      case "symbols":
-        {
-          const symbolText = formula.symbols
-            .map((s) => `${s.sym} means ${s.meaning}`)
-            .join(". ");
-          speak(`Symbols: ${symbolText}.`);
-        }
-        break;
-      case "example":
-        speak(`Example: ${formula.example}`);
-        break;
-      case "intuition":
-        speak(`In other words, ${formula.purpose}`);
-        break;
-      default:
-        speak(
-          `A formula is here. ${formula.expression}. Say Symbols, Example, Intuition, Repeat, or Continue.`
-        );
-    }
-  }, [formula, state.formulaStep, speak]);
+    // Try AI explanation, fall back to deterministic
+    explainFormula(state.docId, formula.formulaId, step)
+      .then((res) => speak(res.text))
+      .catch(() => speak(fallbackText(formula, step)));
+  }, [formula, state.formulaStep, state.docId, speak]);
 
   if (!formula) {
     return (

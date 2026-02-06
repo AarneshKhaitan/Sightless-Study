@@ -106,6 +106,13 @@ function TutorContent() {
         case "NEXT_KEY_POINT":
           visualRef.current?.handleVisualIntent(intent.special, intent.payload);
           break;
+        case "QUICK_EXIT_VISUAL":
+          dispatch({ type: "SET_MODE", mode: "READING", modeId: null });
+          doSpeak("Returning to reading mode.");
+          break;
+        case "UNRECOGNIZED":
+          doSpeak("I didn't catch that. Say Help to hear your options.");
+          break;
         default:
           break;
       }
