@@ -1,0 +1,246 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >>
+endobj
+
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Symbol >>
+endobj
+
+5 0 obj
+<< /Length 456 >>
+stream
+BT
+/F2 28 Tf
+72 700 Td
+(Gradient Descent: Intuition) Tj
+0 -50 Td
+/F1 14 Tf
+(Gradient descent is an optimization method that iteratively updates) Tj
+0 -22 Td
+(parameters to reduce a loss function.) Tj
+0 -36 Td
+(The gradient points in the direction of steepest increase, so moving) Tj
+0 -22 Td
+(opposite the gradient typically decreases the loss.) Tj
+0 -50 Td
+/F3 12 Tf
+0.4 0.4 0.4 rg
+(Key idea: Take small steps downhill on the loss surface.) Tj
+0 0 0 rg
+ET
+endstream
+endobj
+
+6 0 obj
+<< /Length 615 >>
+stream
+BT
+/F2 28 Tf
+72 700 Td
+(Softmax) Tj
+0 -50 Td
+/F1 14 Tf
+(Softmax converts a vector of scores into probabilities by) Tj
+0 -22 Td
+(exponentiating and normalizing.) Tj
+0 -44 Td
+/F2 16 Tf
+(Formula:) Tj
+0 -30 Td
+/F1 14 Tf
+(softmax\(z_i\) = exp\(z_i\) / sum_j exp\(z_j\)) Tj
+0 -44 Td
+/F2 13 Tf
+(Symbols:) Tj
+0 -24 Td
+/F1 12 Tf
+(  z_i   = score \(logit\) for class i) Tj
+0 -20 Td
+(  exp   = exponential function) Tj
+0 -20 Td
+(  sum_j = sum over all classes j) Tj
+0 -40 Td
+/F2 13 Tf
+(Example:) Tj
+0 -24 Td
+/F1 12 Tf
+(If scores are [2, 1, 0], exponentiate to [e^2, e^1, e^0]) Tj
+0 -20 Td
+(and divide each by their sum.) Tj
+ET
+endstream
+endobj
+
+7 0 obj
+<< /Length 1002 >>
+stream
+BT
+/F2 28 Tf
+72 700 Td
+(Training Loss Curve) Tj
+ET
+0.2 0.2 0.2 RG
+2 w
+120 200 m 520 200 l S
+120 200 m 120 600 l S
+BT /F1 11 Tf 300 175 Td (Epoch) Tj ET
+BT /F1 11 Tf 72 400 Td 90 Tm (Loss) Tj ET
+BT /F1 9 Tf 90 200 Td (0.0) Tj ET
+BT /F1 9 Tf 90 400 Td (0.5) Tj ET
+BT /F1 9 Tf 90 600 Td (1.0) Tj ET
+BT /F1 9 Tf 120 185 Td (0) Tj ET
+BT /F1 9 Tf 318 185 Td (25) Tj ET
+BT /F1 9 Tf 516 185 Td (50) Tj ET
+0.85 0.85 0.85 RG
+0.5 w
+120 400 m 520 400 l S
+320 200 m 320 600 l S
+0.2 0.5 0.9 RG
+2.5 w
+120.0 592.7 m
+136.0 539.6 l
+160.0 484.1 l
+184.0 448.0 l
+200.0 431.2 l
+216.0 418.3 l
+240.0 404.6 l
+264.0 395.4 l
+280.0 391.1 l
+320.0 384.0 l
+360.0 380.3 l
+400.0 378.3 l
+440.0 377.2 l
+480.0 376.5 l
+520.0 376.1 l
+S
+1 0.2 0.2 RG
+1 0.2 0.2 rg
+116.0 588.7 8 8 re f
+BT /F1 9 Tf 128.0 596.7 Td (Peak: 1.08) Tj ET
+0.2 0.7 0.2 RG
+0.2 0.7 0.2 rg
+516.0 372.1 8 8 re f
+BT /F1 9 Tf 460.0 361.1 Td (Min: 0.4844) Tj ET
+0 0 0 rg
+BT /F3 12 Tf 120 160 Td
+(Loss decreases quickly early on and then flattens as training converges.) Tj
+ET
+endstream
+endobj
+
+8 0 obj
+<< /Length 1182 >>
+stream
+BT
+/F2 28 Tf
+72 700 Td
+(Model Pipeline) Tj
+ET
+0.85 0.9 0.95 rg
+0.3 0.3 0.3 RG
+1.5 w
+100 600 130 40 re B
+0 0 0 rg
+BT /F2 12 Tf 112 614 Td (Input Text) Tj ET
+0.3 0.3 0.3 rg
+BT /F1 10 Tf 250 614 Td (Raw text provided by the user.) Tj ET
+0 0 0 rg
+0.85 0.9 0.90 rg
+0.3 0.3 0.3 RG
+1.5 w
+100 500 130 40 re B
+0 0 0 rg
+BT /F2 12 Tf 112 514 Td (Tokenizer) Tj ET
+0.3 0.3 0.3 rg
+BT /F1 10 Tf 250 514 Td (Splits text into tokens usable by the model.) Tj ET
+0 0 0 rg
+0.85 0.9 0.85 rg
+0.3 0.3 0.3 RG
+1.5 w
+100 400 130 40 re B
+0 0 0 rg
+BT /F2 12 Tf 112 414 Td (Encoder) Tj ET
+0.3 0.3 0.3 rg
+BT /F1 10 Tf 250 414 Td (Transforms tokens into vector representations.) Tj ET
+0 0 0 rg
+0.85 0.9 0.80 rg
+0.3 0.3 0.3 RG
+1.5 w
+100 300 130 40 re B
+0 0 0 rg
+BT /F2 12 Tf 112 314 Td (Classifier) Tj ET
+0.3 0.3 0.3 rg
+BT /F1 10 Tf 250 314 Td (Outputs the predicted class probabilities.) Tj ET
+0 0 0 rg
+0.3 0.3 0.3 RG
+0.3 0.3 0.3 rg
+2 w
+165 600 m 165 540 l S
+165 540 m 160 548 l 170 548 l f
+165 500 m 165 440 l S
+165 440 m 160 448 l 170 448 l f
+165 400 m 165 340 l S
+165 340 m 160 348 l 170 348 l f
+0 0 0 rg
+BT /F3 12 Tf 100 360 Td
+(A simple pipeline: input text is tokenized, encoded, and then classified.) Tj
+ET
+endstream
+endobj
+
+9 0 obj
+<< /Type /Pages /Kids [10 0 R 11 0 R 12 0 R 13 0 R] /Count 4 >>
+endobj
+
+10 0 obj
+<< /Type /Page /Parent 9 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 5 0 R >>
+endobj
+
+11 0 obj
+<< /Type /Page /Parent 9 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 6 0 R >>
+endobj
+
+12 0 obj
+<< /Type /Page /Parent 9 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 7 0 R >>
+endobj
+
+13 0 obj
+<< /Type /Page /Parent 9 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R /F4 4 0 R >> >> /Contents 8 0 R >>
+endobj
+
+14 0 obj
+<< /Type /Catalog /Pages 9 0 R >>
+endobj
+
+xref
+0 15
+0000000000 65535 f 
+0000000015 00000 n 
+0000000086 00000 n 
+0000000162 00000 n 
+0000000241 00000 n 
+0000000309 00000 n 
+0000000817 00000 n 
+0000001484 00000 n 
+0000002539 00000 n 
+0000003774 00000 n 
+0000003854 00000 n 
+0000004012 00000 n 
+0000004170 00000 n 
+0000004328 00000 n 
+0000004486 00000 n 
+trailer
+<< /Size 15 /Root 14 0 R >>
+startxref
+4537
+%%EOF
