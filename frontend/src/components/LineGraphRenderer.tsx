@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { LineGraphData } from "../types";
+import { colors } from "../theme";
 
 interface Props {
   data: LineGraphData;
@@ -7,7 +8,7 @@ interface Props {
   height: number;
 }
 
-const PADDING = 60;
+const PADDING = 70;
 
 export default function LineGraphRenderer({ data, width, height }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -37,22 +38,43 @@ export default function LineGraphRenderer({ data, width, height }: Props) {
     }
 
     // Background
-    ctx.fillStyle = "#1e1e3a";
+    ctx.fillStyle = colors.bg.card;
     ctx.fillRect(0, 0, width, height);
 
     // Grid lines
-    ctx.strokeStyle = "#333";
+    ctx.strokeStyle = colors.graph.grid;
     ctx.lineWidth = 0.5;
-    for (let i = 0; i <= 5; i++) {
-      const y = PADDING + (i / 5) * plotH;
+    const gridCount = 5;
+    for (let i = 0; i <= gridCount; i++) {
+      const y = PADDING + (i / gridCount) * plotH;
       ctx.beginPath();
       ctx.moveTo(PADDING, y);
       ctx.lineTo(width - PADDING, y);
       ctx.stroke();
+
+      // Y-axis tick labels
+      const yVal = yMax - (i / gridCount) * (yMax - yMin);
+      ctx.fillStyle = colors.text.muted;
+      ctx.font = "11px Inter, sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      ctx.fillText(yVal.toFixed(2), PADDING - 8, y);
+    }
+
+    // X-axis tick labels
+    const xTickCount = 5;
+    for (let i = 0; i <= xTickCount; i++) {
+      const xVal = data.xMin + (i / xTickCount) * (data.xMax - data.xMin);
+      const sx = PADDING + (i / xTickCount) * plotW;
+      ctx.fillStyle = colors.text.muted;
+      ctx.font = "11px Inter, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(xVal.toFixed(0), sx, height - PADDING + 8);
     }
 
     // Axes
-    ctx.strokeStyle = "#666";
+    ctx.strokeStyle = colors.graph.axis;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(PADDING, PADDING);
@@ -60,20 +82,25 @@ export default function LineGraphRenderer({ data, width, height }: Props) {
     ctx.lineTo(width - PADDING, height - PADDING);
     ctx.stroke();
 
-    // Labels
-    ctx.fillStyle = "#aaa";
-    ctx.font = "14px sans-serif";
+    // Axis labels
+    ctx.fillStyle = colors.text.secondary;
+    ctx.font = "13px Inter, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(data.xLabel, width / 2, height - 10);
+    ctx.fillText(data.xLabel, width / 2, height - 8);
     ctx.save();
-    ctx.translate(15, height / 2);
+    ctx.translate(14, height / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.fillText(data.yLabel, 0, 0);
     ctx.restore();
 
-    // Line
-    ctx.strokeStyle = "#4cc9f0";
-    ctx.lineWidth = 2;
+    // Line with glow
+    ctx.save();
+    ctx.shadowColor = colors.accent.primaryGlow;
+    ctx.shadowBlur = 8;
+    ctx.strokeStyle = colors.graph.line;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
     ctx.beginPath();
     for (let i = 0; i < data.points.length; i++) {
       const [x, y] = data.points[i]!;
@@ -82,27 +109,82 @@ export default function LineGraphRenderer({ data, width, height }: Props) {
       else ctx.lineTo(sx, sy);
     }
     ctx.stroke();
+    ctx.restore();
 
-    // Feature markers
+    // Feature markers and legend data
     const featureColors: Record<string, string> = {
-      min: "#00ff88",
-      peak: "#ff4444",
-      inflection: "#ffaa00",
+      min: colors.graph.min,
+      peak: colors.graph.peak,
+      inflection: colors.graph.inflection,
     };
+
+    const legendEntries: { name: string; color: string }[] = [];
+
     for (const [name, pts] of Object.entries(data.features)) {
-      if (!pts) continue;
-      ctx.fillStyle = featureColors[name] ?? "#fff";
+      if (!pts || !Array.isArray(pts) || pts.length === 0) continue;
+      const markerColor = featureColors[name] ?? colors.text.primary;
+      legendEntries.push({ name, color: markerColor });
+
       for (const pt of pts) {
         const [sx, sy] = toScreen(pt.x, pt.y);
+
+        // Glow ring
+        ctx.save();
+        ctx.shadowColor = markerColor;
+        ctx.shadowBlur = 10;
         ctx.beginPath();
-        ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+        ctx.arc(sx, sy, 7, 0, Math.PI * 2);
+        ctx.fillStyle = markerColor;
         ctx.fill();
+        ctx.restore();
+
+        // Inner dot
+        ctx.beginPath();
+        ctx.arc(sx, sy, 4, 0, Math.PI * 2);
+        ctx.fillStyle = colors.bg.card;
+        ctx.fill();
+
         // Label
-        ctx.fillStyle = featureColors[name] ?? "#fff";
-        ctx.font = "12px sans-serif";
+        ctx.fillStyle = markerColor;
+        ctx.font = "bold 11px Inter, sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText(name, sx, sy - 12);
+        ctx.fillText(name, sx, sy - 14);
       }
+    }
+
+    // Legend box (top-right)
+    if (legendEntries.length > 0) {
+      const legendX = width - PADDING - 10;
+      const legendY = PADDING + 10;
+      const lineH = 18;
+      const legendW = 110;
+      const legendH = legendEntries.length * lineH + 12;
+
+      ctx.fillStyle = `${colors.bg.primary}cc`;
+      ctx.strokeStyle = colors.graph.grid;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(legendX - legendW, legendY, legendW, legendH, 6);
+      ctx.fill();
+      ctx.stroke();
+
+      legendEntries.forEach((entry, i) => {
+        const ey = legendY + 10 + i * lineH;
+        const ex = legendX - legendW + 10;
+
+        // Color dot
+        ctx.beginPath();
+        ctx.arc(ex + 4, ey + 4, 4, 0, Math.PI * 2);
+        ctx.fillStyle = entry.color;
+        ctx.fill();
+
+        // Label
+        ctx.fillStyle = colors.text.secondary;
+        ctx.font = "12px Inter, sans-serif";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(entry.name, ex + 14, ey + 4);
+      });
     }
   }, [data, width, height]);
 

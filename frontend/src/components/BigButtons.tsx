@@ -79,23 +79,28 @@ export default function BigButtons({ speak, visualRef }: Props) {
     }
   }, [state.mode, dispatch, visualRef]);
 
-  const nextLabel = state.mode === "VISUAL" ? "NEXT FEATURE" : "NEXT";
-  const helpLabel = "HELP";
+  const nextIcon = state.mode === "VISUAL" ? "\u25B6" : "\u25B6";
+  const nextLabel = state.mode === "VISUAL" ? "NEXT" : "NEXT";
+  const backIcon = state.mode === "VISUAL" ? "\u2716" : "\u25C0";
   const backLabel = state.mode === "VISUAL" ? "DONE" : "BACK";
 
   return (
     <div className={styles.bar}>
       <button className={`${styles.btn} ${styles.back}`} onClick={onBack}>
-        {backLabel}
+        <span className={styles.icon}>{backIcon}</span>
+        <span className={styles.label}>{backLabel}</span>
       </button>
       <button className={`${styles.btn} ${styles.repeat}`} onClick={onRepeat}>
-        REPEAT
+        <span className={styles.icon}>{"\u27F3"}</span>
+        <span className={styles.label}>REPEAT</span>
       </button>
       <button className={`${styles.btn} ${styles.help}`} onClick={onHelp}>
-        {helpLabel}
+        <span className={styles.icon}>?</span>
+        <span className={styles.label}>HELP</span>
       </button>
       <button className={`${styles.btn} ${styles.next}`} onClick={onNext}>
-        {nextLabel}
+        <span className={styles.icon}>{nextIcon}</span>
+        <span className={styles.label}>{nextLabel}</span>
       </button>
     </div>
   );

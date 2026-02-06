@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, forwardRef, useImperativeHandle } from "re
 import type { VisualModule, LineGraphData, FlowchartData } from "../types";
 import LineGraphRenderer from "./LineGraphRenderer";
 import FlowchartRenderer from "./FlowchartRenderer";
+import { colors, radius, shadows } from "../theme";
 
 interface Props {
   visual: VisualModule;
@@ -43,10 +44,12 @@ const ExploreCanvas = forwardRef<ExploreCanvasHandle, Props>(
         style={{
           width: "100%",
           height: "60vh",
-          borderRadius: "12px",
+          borderRadius: radius.md,
           overflow: "hidden",
           touchAction: "none",
           cursor: "crosshair",
+          border: `1px solid ${colors.accent.primary}30`,
+          boxShadow: `${shadows.sm}, ${shadows.glowSm(colors.accent.primaryGlow)}`,
         }}
       >
         {visual.type === "line_graph" && (

@@ -1,12 +1,22 @@
 import { useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTutor } from "../context/TutorContext";
 import type { FormulaModule } from "../types";
 import { formulaToSpeech } from "../services/formulaToSpeech";
 import { explainFormula } from "../api/client";
+import { colors, radius, shadows, spacing, typography } from "../theme";
 
 interface Props {
   speak: (text: string) => Promise<void>;
 }
+
+const STEPS = ["purpose", "symbols", "example", "intuition"] as const;
+const STEP_LABELS: Record<string, string> = {
+  purpose: "Purpose",
+  symbols: "Symbols",
+  example: "Example",
+  intuition: "Intuition",
+};
 
 export default function FormulaView({ speak }: Props) {
   const { state, formulas } = useTutor();
@@ -16,7 +26,6 @@ export default function FormulaView({ speak }: Props) {
     (f) => f.formulaId === state.modeId
   );
 
-  // Deterministic fallback text for each step
   function fallbackText(f: FormulaModule, step: string | null): string {
     const spoken = formulaToSpeech(f.expression);
     switch (step) {
@@ -36,7 +45,6 @@ export default function FormulaView({ speak }: Props) {
     }
   }
 
-  // Speak on entry or when formulaStep changes
   useEffect(() => {
     if (!formula) return;
     const step = state.formulaStep ?? "purpose";
@@ -44,7 +52,6 @@ export default function FormulaView({ speak }: Props) {
     if (spokenRef.current === key) return;
     spokenRef.current = key;
 
-    // Try AI explanation, fall back to deterministic
     explainFormula(state.docId, formula.formulaId, step)
       .then((res) => speak(res.text))
       .catch(() => speak(fallbackText(formula, step)));
@@ -52,53 +59,156 @@ export default function FormulaView({ speak }: Props) {
 
   if (!formula) {
     return (
-      <p style={{ fontSize: "1.5rem", color: "#888" }}>
+      <p style={{ fontSize: typography.size.xl, color: colors.text.muted }}>
         Formula not found.
       </p>
     );
   }
 
+  const currentStep = state.formulaStep ?? "purpose";
+
   return (
     <div>
+      {/* Step indicator tabs */}
       <div
         style={{
-          background: "#2a2a4a",
-          padding: "2rem",
-          borderRadius: "12px",
-          marginBottom: "1.5rem",
+          display: "flex",
+          gap: spacing.xs,
+          marginBottom: spacing.lg,
         }}
       >
-        <p style={{ fontSize: "1.3rem", color: "#4cc9f0", marginBottom: "0.5rem" }}>
+        {STEPS.map((step) => (
+          <div
+            key={step}
+            style={{
+              flex: 1,
+              textAlign: "center",
+              padding: `${spacing.sm} ${spacing.md}`,
+              borderRadius: radius.sm,
+              fontSize: typography.size.sm,
+              fontWeight: currentStep === step ? typography.weight.bold : typography.weight.normal,
+              color: currentStep === step ? colors.accent.primary : colors.text.muted,
+              background: currentStep === step ? `${colors.accent.primary}15` : "transparent",
+              borderBottom: currentStep === step ? `2px solid ${colors.accent.primary}` : `2px solid transparent`,
+              transition: "all 0.2s ease",
+            }}
+          >
+            {STEP_LABELS[step]}
+          </div>
+        ))}
+      </div>
+
+      {/* Formula card */}
+      <div
+        style={{
+          background: colors.bg.elevated,
+          padding: spacing.xl,
+          borderRadius: radius.md,
+          marginBottom: spacing.lg,
+          boxShadow: shadows.sm,
+          border: `1px solid ${colors.accent.primary}20`,
+        }}
+      >
+        <p
+          style={{
+            fontSize: typography.size.sm,
+            color: colors.accent.primary,
+            fontWeight: typography.weight.semibold,
+            marginBottom: spacing.sm,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+          }}
+        >
           Formula
         </p>
-        <p style={{ fontSize: "2rem", fontFamily: "monospace" }}>
+        <p
+          style={{
+            fontSize: typography.size.xxl,
+            fontFamily: "'Courier New', monospace",
+            color: colors.text.primary,
+            textShadow: `0 0 20px ${colors.accent.primaryGlow}`,
+          }}
+        >
           {formula.expression}
         </p>
       </div>
 
-      <p style={{ fontSize: "1.3rem", lineHeight: 1.6 }}>
+      {/* Purpose (always shown) */}
+      <p
+        style={{
+          fontSize: typography.size.lg,
+          lineHeight: 1.6,
+          color: colors.text.primary,
+          marginBottom: spacing.lg,
+        }}
+      >
         {formula.purpose}
       </p>
 
-      {state.formulaStep === "symbols" && (
-        <div style={{ marginTop: "1rem" }}>
-          {formula.symbols.map((s) => (
-            <p key={s.sym} style={{ fontSize: "1.2rem", marginBottom: "0.3rem" }}>
-              <strong style={{ color: "#4cc9f0" }}>{s.sym}</strong>: {s.meaning}
+      {/* Step content */}
+      <AnimatePresence mode="wait">
+        {currentStep === "symbols" && (
+          <motion.div
+            key="symbols"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              background: colors.bg.card,
+              borderRadius: radius.md,
+              padding: spacing.lg,
+            }}
+          >
+            {formula.symbols.map((s) => (
+              <div
+                key={s.sym}
+                style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: spacing.md,
+                  padding: `${spacing.sm} 0`,
+                  borderBottom: `1px solid ${colors.bg.tertiary}`,
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "'Courier New', monospace",
+                    fontSize: typography.size.lg,
+                    fontWeight: typography.weight.bold,
+                    color: colors.accent.primary,
+                    minWidth: "60px",
+                  }}
+                >
+                  {s.sym}
+                </span>
+                <span style={{ fontSize: typography.size.md, color: colors.text.secondary }}>
+                  {s.meaning}
+                </span>
+              </div>
+            ))}
+          </motion.div>
+        )}
+
+        {currentStep === "example" && (
+          <motion.div
+            key="example"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              background: colors.bg.card,
+              borderRadius: radius.md,
+              padding: spacing.lg,
+            }}
+          >
+            <p style={{ fontSize: typography.size.lg, lineHeight: 1.7, color: colors.text.secondary }}>
+              {formula.example}
             </p>
-          ))}
-        </div>
-      )}
-
-      {state.formulaStep === "example" && (
-        <p style={{ marginTop: "1rem", fontSize: "1.2rem", color: "#ccc" }}>
-          {formula.example}
-        </p>
-      )}
-
-      <p style={{ color: "#888", marginTop: "1.5rem", fontSize: "1rem" }}>
-        Step: {state.formulaStep ?? "purpose"} &middot; {formula.formulaId}
-      </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

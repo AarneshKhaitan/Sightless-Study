@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTutor } from "../context/TutorContext";
 import type { VisualModule, LineGraphData, FlowchartData } from "../types";
 import ExploreCanvas, { type ExploreCanvasHandle } from "./ExploreCanvas";
@@ -10,6 +11,7 @@ import { getFeaturePosition } from "../services/narrationEngine.lineGraph";
 import { getKeyNodePosition } from "../services/narrationEngine.flowchart";
 import * as traceService from "../services/explorationTrace";
 import { postReflection } from "../api/client";
+import { colors, radius, shadows, spacing, typography } from "../theme";
 
 interface Props {
   speak: (text: string) => Promise<void>;
@@ -301,43 +303,122 @@ const VisualView = forwardRef<VisualViewHandle, Props>(
     }), [handleStartExploring, handleWhatIsHere, handleDescribeVisual, handleMarkThis, handleGuideTo, handleImDone, handleQuickExit, handleNextKeyPoint]);
 
     if (!visual) {
-      return <p style={{ fontSize: "1.5rem", color: "#888" }}>Visual not found.</p>;
+      return (
+        <p style={{ fontSize: typography.size.xl, color: colors.text.muted }}>
+          Visual not found.
+        </p>
+      );
     }
+
+    const typeIcon = visual.type === "line_graph" ? "\u{1F4C8}" : "\u{1F500}";
 
     return (
       <div>
-        <p
+        {/* Title bar */}
+        <div
           style={{
-            fontSize: "1.3rem",
-            color: "#4cc9f0",
-            marginBottom: "1rem",
+            display: "flex",
+            alignItems: "center",
+            gap: spacing.md,
+            marginBottom: spacing.lg,
           }}
         >
-          {visual.title}
-          {exploring && " — Exploring"}
-          {guidanceTarget && ` — Guiding to ${guidanceTarget.name}`}
-        </p>
-        <ExploreCanvas ref={canvasRef} visual={visual} />
-        {exploring && (
-          <button
-            onClick={handleImDone}
+          <p
             style={{
-              marginTop: "1rem",
-              padding: "1rem 2rem",
-              fontSize: "1.3rem",
-              fontWeight: "bold",
-              background: "#f07070",
-              color: "#fff",
-              border: "none",
-              borderRadius: "0.75rem",
-              cursor: "pointer",
-              width: "100%",
+              fontSize: typography.size.xl,
+              fontWeight: typography.weight.semibold,
+              color: colors.accent.pink,
+              margin: 0,
             }}
           >
-            Stop Exploring
-          </button>
-        )}
-        <p style={{ color: "#888", marginTop: "0.5rem", fontSize: "0.9rem" }}>
+            {typeIcon} {visual.title}
+          </p>
+
+          <AnimatePresence>
+            {exploring && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                style={{
+                  fontSize: typography.size.xs,
+                  fontWeight: typography.weight.bold,
+                  color: colors.status.success,
+                  background: `${colors.status.success}20`,
+                  padding: `${spacing.xs} ${spacing.sm}`,
+                  borderRadius: radius.full,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                Exploring
+              </motion.span>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {guidanceTarget && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                style={{
+                  fontSize: typography.size.xs,
+                  fontWeight: typography.weight.bold,
+                  color: colors.status.warning,
+                  background: `${colors.status.warning}20`,
+                  padding: `${spacing.xs} ${spacing.sm}`,
+                  borderRadius: radius.full,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                Guiding to {guidanceTarget.name}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Canvas */}
+        <ExploreCanvas ref={canvasRef} visual={visual} />
+
+        {/* Stop button */}
+        <AnimatePresence>
+          {exploring && (
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ duration: 0.2 }}
+              onClick={handleImDone}
+              style={{
+                marginTop: spacing.md,
+                padding: `${spacing.md} ${spacing.xl}`,
+                fontSize: typography.size.lg,
+                fontWeight: typography.weight.bold,
+                background: `linear-gradient(135deg, ${colors.status.error}, #cc3333)`,
+                color: colors.text.inverse,
+                border: "none",
+                borderRadius: radius.md,
+                cursor: "pointer",
+                width: "100%",
+                boxShadow: shadows.glowSm(colors.status.errorGlow),
+                fontFamily: typography.family,
+              }}
+            >
+              Stop Exploring
+            </motion.button>
+          )}
+        </AnimatePresence>
+
+        {/* Visual ID */}
+        <p
+          style={{
+            color: colors.text.muted,
+            marginTop: spacing.sm,
+            fontSize: typography.size.sm,
+          }}
+        >
           {visual.visualId} &middot; {visual.type}
         </p>
       </div>
