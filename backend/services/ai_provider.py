@@ -168,9 +168,10 @@ Points marked: {len(marked)}
 Duration: {duration:.0f} seconds
 
 Write a brief reflection (max 3-4 sentences total across all fields):
-- reflection: what the student explored
-- takeaway: the key insight
-- nextSuggestion: what to explore next
+- reflection: 2 sentences on what the student explored
+- takeaway: 1 sentence key insight
+- nextSuggestion: 1 sentence next suggested action
+Avoid excessive coordinates; focus on meaning.
 
 Respond with ONLY valid JSON:
 {{"reflection": "...", "takeaway": "...", "nextSuggestion": "..."}}"""
