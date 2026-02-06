@@ -10,11 +10,41 @@ import logging
 from fastapi import APIRouter, File, Form, UploadFile
 
 from models import VoiceResponse, VoiceState
+from services.demo_store import get_chunks
+from services.orchestrator import process as orchestrator_process
 from services.transcriber import transcribe_audio
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["voice"])
+
+
+def _build_context(app_state: VoiceState) -> dict:
+    """Build context dict for the orchestrator from app state."""
+    chunks = get_chunks(app_state.docId)
+    page_chunks = sorted(
+        [c for c in chunks if c.pageNo == app_state.pageNo],
+        key=lambda c: c.order,
+    )
+
+    # Current chunk text
+    chunk_text = ""
+    if 0 <= app_state.chunkIndex < len(page_chunks):
+        chunk_text = page_chunks[app_state.chunkIndex].text
+
+    # Nearby chunks for Q&A context (serialize to dicts)
+    nearby = page_chunks if page_chunks else chunks[:5]
+    nearby_dicts = [
+        {"chunkId": c.chunkId, "pageNo": c.pageNo, "text": c.text, "order": c.order}
+        for c in nearby
+    ]
+
+    return {
+        "chunk_text": chunk_text,
+        "total_chunks": len(page_chunks),
+        "total_pages": len(set(c.pageNo for c in chunks)),
+        "nearby_chunks": nearby_dicts,
+    }
 
 
 @router.post("/voice", response_model=VoiceResponse)
@@ -37,9 +67,13 @@ async def voice(
             speech="I didn't catch that. Tap and try again.",
         )
 
-    # TODO: Phase C will wire orchestrator here
-    # For now, return transcript with a placeholder response
+    # Build context and run orchestrator
+    context = _build_context(app_state)
+    result = await orchestrator_process(transcript, app_state, context)
+
     return VoiceResponse(
         transcript=transcript,
-        speech=f"I heard: {transcript}. The orchestrator is not connected yet.",
+        action=result.get("action"),
+        payload=result.get("payload") or result.get("special"),
+        speech=result.get("speech"),
     )

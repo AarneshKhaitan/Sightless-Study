@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any
 from pydantic import BaseModel
 
 
@@ -171,5 +172,5 @@ class VoiceState(BaseModel):
 class VoiceResponse(BaseModel):
     transcript: str
     action: str | None = None
-    payload: dict | None = None
+    payload: Any | None = None
     speech: str | None = None
