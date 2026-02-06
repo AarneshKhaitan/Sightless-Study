@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException
 
-from models import QARequest, QAResponse, QACitation
+from models import QARequest, QAResponse, QACitation, ChatRequest, ChatResponse
 from services.demo_store import get_chunks
 from services.qa_engine import answer_question, retrieve_top_chunks
 
@@ -46,4 +46,23 @@ async def qa(request: QARequest) -> QAResponse:
         question=request.question,
         chunks=chunks,
         page_no=request.pageNo,
+    )
+
+
+@router.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest) -> ChatResponse:
+    """Free-form conversational fallback for unrecognized voice commands."""
+    try:
+        from services.ai_provider import get_ai_provider
+        ai = get_ai_provider()
+        if ai is not None:
+            reply = await ai.chat(request.message, request.context)
+            return ChatResponse(reply=reply)
+    except ImportError:
+        pass
+    except Exception as e:
+        logger.warning("AI chat failed: %s", e)
+
+    return ChatResponse(
+        reply="I didn't quite understand that. Say Help to hear your options."
     )

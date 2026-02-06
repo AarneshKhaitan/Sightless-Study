@@ -88,6 +88,20 @@ export async function explainFormula(
   return res.json();
 }
 
+export async function chat(
+  docId: string,
+  message: string,
+  context?: string
+): Promise<{ reply: string }> {
+  const res = await fetch(`${BASE}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ docId, message, context: context ?? "" }),
+  });
+  if (!res.ok) throw new Error(`Chat error ${res.status}`);
+  return res.json();
+}
+
 export async function postReflection(
   docId: string,
   visualId: string,

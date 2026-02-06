@@ -146,3 +146,13 @@ class FormulaExplainRequest(BaseModel):
 
 class FormulaExplainResponse(BaseModel):
     text: str
+
+
+class ChatRequest(BaseModel):
+    docId: str
+    message: str
+    context: str = ""
+
+
+class ChatResponse(BaseModel):
+    reply: str

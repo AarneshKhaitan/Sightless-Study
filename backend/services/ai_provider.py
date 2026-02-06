@@ -70,7 +70,8 @@ class AIProvider:
         symbols_str = ", ".join(
             f"{s['sym']} ({s['meaning']})" for s in formula.get("symbols", [])
         )
-        prompt = f"""You are a patient math tutor for a visually impaired university student.
+        prompt = f"""You are an accessibility-first tutor. Be concise, grounded in provided context, and never invent document content. If context is insufficient, say what's missing and ask one clarifying question.
+
 The student is learning about this formula:
 Expression: {formula['expression']}
 Purpose: {formula['purpose']}
@@ -78,6 +79,7 @@ Symbols: {symbols_str}
 Example: {formula.get('example', 'N/A')}
 
 Explain the "{section}" aspect of this formula in 2-3 clear, spoken sentences.
+Sections: purpose, symbol table, tiny worked example, or intuition (1-2 sentences).
 Do NOT introduce any symbols or variables not listed above.
 Respond with ONLY valid JSON: {{"text": "your explanation"}}"""
 
@@ -114,8 +116,9 @@ Respond with ONLY valid JSON: {{"text": "your explanation"}}"""
         )
         chunk_ids = [c["chunkId"] for c in chunks]
 
-        prompt = f"""You are a helpful study assistant for a visually impaired university student.
-Answer the question using ONLY the provided context. Do not make up information.
+        prompt = f"""You are an accessibility-first tutor. Be concise, grounded in provided context, and never invent document content. If context is insufficient, say what's missing and ask one clarifying question.
+
+Answer the question using ONLY the provided context. Return citations with the chunkIds used.
 
 Context:
 {context}
@@ -158,7 +161,9 @@ Respond with ONLY valid JSON:
         marked = trace.get("marked", [])
         duration = trace.get("durationSec", 0)
 
-        prompt = f"""You are a study assistant helping a visually impaired student reflect on their exploration of a visual.
+        prompt = f"""You are an accessibility-first tutor. Be concise, grounded in provided context, and never invent document content. If context is insufficient, say what's missing and ask one clarifying question.
+
+Reflect on the student's exploration of a visual.
 
 Visual: {visual_module.get('title', 'Unknown')}
 Type: {visual_module.get('type', 'unknown')}
@@ -191,7 +196,8 @@ Respond with ONLY valid JSON:
     async def chat(self, message: str, context: str = "") -> str:
         """Handle a free-form conversational message.
         Returns a spoken reply string."""
-        prompt = f"""You are a friendly study assistant for a visually impaired university student.
+        prompt = f"""You are an accessibility-first tutor. Be concise, grounded in provided context, and never invent document content. If context is insufficient, say what's missing and ask one clarifying question.
+
 The student is using a voice-controlled reading app.
 {f"Current reading context: {context}" if context else ""}
 

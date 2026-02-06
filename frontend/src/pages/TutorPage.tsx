@@ -4,7 +4,7 @@ import { TutorProvider, useTutor } from "../context/TutorContext";
 import { useVoice } from "../hooks/useVoice";
 import type { ParsedIntent } from "../services/intentParser";
 import * as tts from "../services/tts";
-import { askQuestion } from "../api/client";
+import { askQuestion, chat } from "../api/client";
 import VoiceStatus from "../components/VoiceStatus";
 import ReadingView from "../components/ReadingView";
 import FormulaView from "../components/FormulaView";
@@ -111,7 +111,13 @@ function TutorContent() {
           doSpeak("Returning to reading mode.");
           break;
         case "UNRECOGNIZED":
-          doSpeak("I didn't catch that. Say Help to hear your options.");
+          {
+            const msg = intent.payload ?? "";
+            const ctx = currentChunk?.text ?? "";
+            chat(state.docId, msg, ctx)
+              .then((res) => speakRef.current(res.reply))
+              .catch(() => speakRef.current("I didn't catch that. Say Help to hear your options."));
+          }
           break;
         default:
           break;
