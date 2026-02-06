@@ -14,7 +14,7 @@ Ask questions about what you're reading. Answers are grounded in the document te
 
 ### Formula Tutor
 
-When a page contains a formula, explore it step-by-step:
+Formulas are automatically detected from uploaded PDFs using AI. When a page contains a formula, explore it step-by-step:
 
 - **Purpose** — what the formula does
 - **Symbols** — each variable explained
@@ -23,7 +23,7 @@ When a page contains a formula, explore it step-by-step:
 
 ### Visual Explorer
 
-Graphs, charts, and flowcharts become an interactive canvas. Move your pointer to explore and the system narrates what's under your cursor:
+Graphs, charts, and flowcharts are automatically detected from uploaded PDFs using AI vision and become an interactive canvas. Move your pointer to explore and the system narrates what's under your cursor:
 
 - **Line graphs**: interpolated values, trends, proximity to min/max
 - **Flowcharts**: node descriptions, connections, navigation
@@ -75,11 +75,10 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Create `backend/.env`:
+Copy the example env file and fill in your keys:
 
-```text
-OPENAI_API_KEY=sk-...
-DEEPGRAM_API_KEY=...
+```bash
+cp .env.example .env
 ```
 
 Start the server:
@@ -135,6 +134,7 @@ Upload the included `demo.pdf` through the app to try it with a sample 4-page le
 │       ├── ai_provider.py   # OpenAI LLM integration
 │       ├── transcriber.py   # Deepgram ASR
 │       ├── pdf_parser.py    # PDF text extraction
+│       ├── module_extractor.py # AI-powered formula & visual detection
 │       ├── qa_engine.py     # Grounded Q&A
 │       └── reflection.py    # Visual exploration reflection
 │
@@ -197,7 +197,7 @@ Upload the included `demo.pdf` through the app to try it with a sample 4-page le
 - **LLM**: OpenAI GPT-4o-mini via LangGraph
 - **Speech-to-Text**: Deepgram Nova-2
 - **Text-to-Speech**: Browser SpeechSynthesis API
-- **PDF Parsing**: PyMuPDF
+- **PDF Parsing**: PyMuPDF (text extraction + page rendering for AI vision)
 - **Orchestration**: LangGraph (ReAct agent with tool calling)
 
 ## Design Principles
