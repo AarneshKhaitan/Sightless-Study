@@ -1,15 +1,20 @@
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from routers import documents, explore, modules, qa
 from services.demo_store import load_demo_data
+from services.ai_provider import init_ai_provider
+
+load_dotenv()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     load_demo_data()
+    init_ai_provider()
     yield
 
 
