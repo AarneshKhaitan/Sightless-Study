@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import documents, explore, modules, qa
+from routers import documents, explore, modules, qa, voice
 from services.demo_store import load_demo_data
 from services.ai_provider import init_ai_provider
 
@@ -31,3 +31,4 @@ app.include_router(documents.router)
 app.include_router(modules.router)
 app.include_router(qa.router)
 app.include_router(explore.router)
+app.include_router(voice.router)

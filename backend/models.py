@@ -156,3 +156,20 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str
+    aiGenerated: bool = False
+
+
+class VoiceState(BaseModel):
+    docId: str
+    pageNo: int
+    chunkIndex: int
+    mode: str  # READING | FORMULA | VISUAL
+    modeId: str | None = None
+    formulaStep: str | None = None
+
+
+class VoiceResponse(BaseModel):
+    transcript: str
+    action: str | None = None
+    payload: dict | None = None
+    speech: str | None = None
