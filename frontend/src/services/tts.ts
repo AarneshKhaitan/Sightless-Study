@@ -66,3 +66,8 @@ export function speak(text: string): Promise<void> {
     window.speechSynthesis.speak(utterance);
   });
 }
+
+// Cancel speech on page unload/reload
+window.addEventListener("beforeunload", () => {
+  window.speechSynthesis.cancel();
+});

@@ -117,3 +117,8 @@ export function resumeListening() {
     startListening(callback);
   }
 }
+
+// Stop listening on page unload/reload
+window.addEventListener("beforeunload", () => {
+  stopListening();
+});

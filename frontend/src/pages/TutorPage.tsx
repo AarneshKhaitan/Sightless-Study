@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { Chunk, DocumentManifest, FormulaModule, VisualModule } from "../types";
 import { TutorProvider, useTutor } from "../context/TutorContext";
 import { useVoice } from "../hooks/useVoice";
@@ -21,6 +21,7 @@ interface Props {
 function TutorContent() {
   const { state, currentChunk, pageChunks, manifest, dispatch } = useTutor();
   const visualRef = useRef<VisualViewHandle>(null);
+  const [hasStarted, setHasStarted] = useState(false);
 
   // Use a ref for speak so handleIntent always has the latest version
   const speakRef = useRef<(text: string) => Promise<void>>(async () => {});
@@ -112,10 +113,40 @@ function TutorContent() {
     [state, currentChunk, pageChunks, dispatch]
   );
 
-  const voice = useVoice(handleIntent);
+  const voice = useVoice(handleIntent, hasStarted);
 
   // Keep speakRef in sync
   speakRef.current = voice.speak;
+
+  if (!hasStarted) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#1a1a2e",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <button
+          onClick={() => setHasStarted(true)}
+          style={{
+            padding: "2rem 4rem",
+            fontSize: "2rem",
+            fontWeight: "bold",
+            background: "#4cc9f0",
+            color: "#1a1a2e",
+            border: "none",
+            borderRadius: "1rem",
+            cursor: "pointer",
+          }}
+        >
+          Tap to Begin
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div

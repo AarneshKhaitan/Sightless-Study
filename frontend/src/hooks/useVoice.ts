@@ -13,7 +13,8 @@ interface UseVoiceReturn {
 }
 
 export function useVoice(
-  onIntent: (intent: ParsedIntent, transcript: string) => void
+  onIntent: (intent: ParsedIntent, transcript: string) => void,
+  enabled = true
 ): UseVoiceReturn {
   const { state } = useTutor();
   const [voiceState, setVoiceState] = useState<VoiceState>("IDLE");
@@ -29,6 +30,9 @@ export function useVoice(
     try {
       await tts.speak(text);
     } finally {
+      // Wait 500ms after TTS finishes before resuming ASR
+      // to prevent the microphone from picking up the tail end of speech
+      await new Promise((r) => setTimeout(r, 500));
       setVoiceState("LISTENING");
       asr.resumeListening();
     }
@@ -54,8 +58,9 @@ export function useVoice(
     [speakAndResume]
   );
 
-  // Start ASR on mount
+  // Start ASR when enabled
   useEffect(() => {
+    if (!enabled) return;
     if (asr.isASRSupported()) {
       asr.startListening(handleTranscript);
       setVoiceState("LISTENING");
@@ -64,7 +69,7 @@ export function useVoice(
       asr.stopListening();
       tts.stop();
     };
-  }, [handleTranscript]);
+  }, [handleTranscript, enabled]);
 
   return {
     voiceState,
