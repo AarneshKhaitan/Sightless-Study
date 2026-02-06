@@ -57,7 +57,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
         ai = get_ai_provider()
         if ai is not None:
             reply = await ai.chat(request.message, request.context)
-            return ChatResponse(reply=reply)
+            return ChatResponse(reply=reply, aiGenerated=True)
     except ImportError:
         pass
     except Exception as e:
