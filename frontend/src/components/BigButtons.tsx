@@ -26,24 +26,26 @@ export default function BigButtons({ speak, visualRef }: Props) {
   }, [state.mode, dispatch, visualRef]);
 
   const onRepeat = useCallback(() => {
-    speak("Repeating.");
     switch (state.mode) {
       case "READING":
         // ReadingView auto-speaks on chunk change; dispatch same chunk to re-trigger
         dispatch({ type: "GO_TO_CHUNK", pageNo: state.pageNo, chunkIndex: state.chunkIndex });
         break;
       case "FORMULA":
-        // Re-trigger current formula step
+        // Re-trigger current formula step (including purpose)
         if (state.formulaStep === "symbols") dispatch({ type: "FORMULA_SYMBOLS" });
         else if (state.formulaStep === "example") dispatch({ type: "FORMULA_EXAMPLE" });
         else if (state.formulaStep === "intuition") dispatch({ type: "FORMULA_INTUITION" });
-        else dispatch({ type: "FORMULA_SYMBOLS" }); // default to purpose re-entry
+        else {
+          // Purpose step: re-enter formula mode to re-speak
+          dispatch({ type: "SET_MODE", mode: "FORMULA", modeId: state.modeId });
+        }
         break;
       case "VISUAL":
         visualRef.current?.handleVisualIntent("WHAT_IS_HERE");
         break;
     }
-  }, [state, dispatch, speak, visualRef]);
+  }, [state, dispatch, visualRef]);
 
   const onHelp = useCallback(() => {
     switch (state.mode) {
@@ -56,10 +58,12 @@ export default function BigButtons({ speak, visualRef }: Props) {
         speak("You can say Symbols, Example, Intuition, Repeat, or Continue.");
         break;
       case "VISUAL":
-        visualRef.current?.handleVisualIntent("WHAT_IS_HERE");
+        speak(
+          "You can say Start exploring, What is here, Mark this, Guide me to minimum or peak, Next key point, or I'm done."
+        );
         break;
     }
-  }, [state.mode, speak, visualRef]);
+  }, [state.mode, speak]);
 
   const onBack = useCallback(() => {
     switch (state.mode) {
@@ -76,7 +80,7 @@ export default function BigButtons({ speak, visualRef }: Props) {
   }, [state.mode, dispatch, visualRef]);
 
   const nextLabel = state.mode === "VISUAL" ? "NEXT FEATURE" : "NEXT";
-  const helpLabel = state.mode === "VISUAL" ? "WHAT'S HERE" : "HELP";
+  const helpLabel = "HELP";
   const backLabel = state.mode === "VISUAL" ? "DONE" : "BACK";
 
   return (

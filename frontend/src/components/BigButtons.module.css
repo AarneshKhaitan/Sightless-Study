@@ -19,11 +19,17 @@
   font-weight: 700;
   cursor: pointer;
   color: #fff;
-  transition: opacity 0.1s;
+  transition: opacity 0.1s, transform 0.1s;
 }
 
 .btn:active {
   opacity: 0.7;
+  transform: scale(0.93);
+}
+
+.btn:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
 }
 
 .next {
