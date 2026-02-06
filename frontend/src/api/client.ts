@@ -58,6 +58,22 @@ export async function askQuestion(
   return res.json();
 }
 
+export async function uploadPDF(
+  file: File
+): Promise<{ docId: string; title: string; pageCount: number; chunkCount: number }> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${BASE}/documents/upload`, {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(`Upload error ${res.status}: ${detail}`);
+  }
+  return res.json();
+}
+
 export async function postReflection(
   docId: string,
   visualId: string,

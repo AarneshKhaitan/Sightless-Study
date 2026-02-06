@@ -1,4 +1,6 @@
+import { useEffect, useRef } from "react";
 import type { VoiceState } from "../hooks/useVoice";
+import { earconListening, earconSpeaking } from "../services/earcons";
 
 interface Props {
   state: VoiceState;
@@ -14,6 +16,14 @@ const stateStyles: Record<VoiceState, { bg: string; label: string }> = {
 
 export default function VoiceStatus({ state, lastTranscript }: Props) {
   const { bg, label } = stateStyles[state];
+  const prevState = useRef<VoiceState>(state);
+
+  useEffect(() => {
+    if (prevState.current === state) return;
+    if (state === "LISTENING") earconListening();
+    else if (state === "SPEAKING") earconSpeaking();
+    prevState.current = state;
+  }, [state]);
 
   return (
     <div

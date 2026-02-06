@@ -1,5 +1,5 @@
-import { useCallback, useState } from "react";
-import { getManifest, getChunks, getFormulas, getVisuals } from "../api/client";
+import { useCallback, useRef, useState } from "react";
+import { getManifest, getChunks, getFormulas, getVisuals, uploadPDF } from "../api/client";
 import type { Chunk, DocumentManifest, FormulaModule, VisualModule } from "../types";
 
 interface LoadedData {
@@ -16,6 +16,7 @@ interface Props {
 export default function HomePage({ onLoaded }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadDemo = useCallback(async () => {
     setLoading(true);
@@ -79,21 +80,55 @@ export default function HomePage({ onLoaded }: Props) {
       </button>
 
       <button
-        disabled
+        onClick={() => fileInputRef.current?.click()}
+        disabled={loading}
         style={{
           padding: "1.5rem 3rem",
           fontSize: "1.5rem",
           fontWeight: "bold",
           borderRadius: "12px",
-          border: "3px solid #555",
-          background: "#333",
-          color: "#888",
-          cursor: "not-allowed",
+          border: "3px solid #7209b7",
+          background: "#7209b7",
+          color: "#fff",
+          cursor: loading ? "wait" : "pointer",
           minWidth: "280px",
         }}
       >
-        Upload PDF (coming soon)
+        Upload PDF
       </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf"
+        style={{ display: "none" }}
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          setLoading(true);
+          setError(null);
+          try {
+            const uploadResult = await uploadPDF(file);
+            const docId = uploadResult.docId;
+            const [manifest, chunksRes, formulasRes, visualsRes] = await Promise.all([
+              getManifest(docId),
+              getChunks(docId),
+              getFormulas(docId),
+              getVisuals(docId),
+            ]);
+            onLoaded({
+              manifest,
+              chunks: chunksRes.chunks,
+              formulas: formulasRes.formulas,
+              visuals: visualsRes.visuals,
+            });
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "Upload failed");
+          } finally {
+            setLoading(false);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+          }
+        }}
+      />
 
       {error && (
         <p style={{ color: "#f07070", fontSize: "1.1rem" }}>{error}</p>
