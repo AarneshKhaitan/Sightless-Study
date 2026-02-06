@@ -42,8 +42,15 @@ function getTrend(points: [number, number][], xNorm: number, xMin: number, xMax:
 function nearFeature(
   data: LineGraphData,
   xNorm: number,
-  threshold: number = 0.08
+  yNorm: number,
+  threshold: number = 0.12
 ): { name: string; dist: number } | null {
+  // Compute y-range for normalization
+  const yValues = data.points.map((p) => p[1]);
+  const yMin = Math.min(...yValues);
+  const yMax = Math.max(...yValues);
+  const yRange = yMax > yMin ? yMax - yMin : 1;
+
   const allFeatures: { name: string; fx: number; fy: number }[] = [];
   for (const [name, pts] of Object.entries(data.features)) {
     if (pts) {
@@ -55,11 +62,13 @@ function nearFeature(
 
   let closest: { name: string; dist: number } | null = null;
   for (const f of allFeatures) {
-    // Normalize feature x to 0-1
+    // Normalize feature x and y to 0-1
     const fxNorm = (f.fx - data.xMin) / (data.xMax - data.xMin);
+    const fyNorm = 1 - (f.fy - yMin) / yRange; // invert for screen coords
     const dx = xNorm - fxNorm;
-    // Use x-distance primarily since y is auto-interpolated
-    const dist = Math.abs(dx);
+    const dy = yNorm - fyNorm;
+    // Euclidean distance using both axes
+    const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist < threshold && (!closest || dist < closest.dist)) {
       closest = { name: f.name, dist };
     }
@@ -71,15 +80,15 @@ function nearFeature(
 export function narrateLineGraph(
   data: LineGraphData,
   xNorm: number,
-  _yNorm: number,
+  yNorm: number,
   isDwell: boolean
 ): LineGraphNarration | null {
   const x = data.xMin + xNorm * (data.xMax - data.xMin);
   const y = interpolateY(data.points, xNorm, data.xMin, data.xMax);
   const trend = getTrend(data.points, xNorm, data.xMin, data.xMax);
 
-  // Check proximity to features
-  const feature = nearFeature(data, xNorm);
+  // Check proximity to features using both X and Y axes
+  const feature = nearFeature(data, xNorm, yNorm);
 
   // Region key: bucket x into segments for transition detection
   const bucket = Math.floor(xNorm * 10);

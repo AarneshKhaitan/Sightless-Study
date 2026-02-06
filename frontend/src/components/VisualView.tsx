@@ -37,14 +37,36 @@ const VisualView = forwardRef<VisualViewHandle, Props>(
       (v) => v.visualId === state.modeId
     );
 
-    // Speak description on entry
+    // Speak description + overview on entry
     const spokenEntryRef = useRef<string | null>(null);
     useEffect(() => {
       if (!visual || spokenEntryRef.current === visual.visualId) return;
       spokenEntryRef.current = visual.visualId;
-      speak(
-        `A visual is here: ${visual.title}. ${visual.description}. Say Start exploring when ready.`
-      );
+
+      let overview = `A visual is here: ${visual.title}. ${visual.description}.`;
+
+      if (visual.type === "line_graph") {
+        const gd = visual.data as LineGraphData;
+        const yValues = gd.points.map((p) => p[1]);
+        const yMin = Math.min(...yValues);
+        const yMax = Math.max(...yValues);
+        const featureNames = Object.keys(gd.features).filter(
+          (k) => {
+            const pts = (gd.features as Record<string, unknown>)[k];
+            return Array.isArray(pts) && pts.length > 0;
+          }
+        );
+        overview += ` This is a line graph. ${gd.xLabel} ranges from ${gd.xMin} to ${gd.xMax}. ${gd.yLabel} ranges from ${yMin.toFixed(2)} to ${yMax.toFixed(2)}.`;
+        if (featureNames.length > 0) {
+          overview += ` Key features: ${featureNames.join(", ")}.`;
+        }
+      } else if (visual.type === "flowchart") {
+        const fd = visual.data as FlowchartData;
+        overview += ` This is a flowchart with ${fd.nodes.length} nodes and ${fd.edges.length} connections.`;
+      }
+
+      overview += " Say Start exploring when ready, or Go back to return to reading.";
+      speak(overview);
     }, [visual, speak]);
 
     // Handle pointer samples during exploration
@@ -184,6 +206,40 @@ const VisualView = forwardRef<VisualViewHandle, Props>(
       dispatch({ type: "EXIT_EXPLORE" });
     }, [visual, state.docId, speak, dispatch]);
 
+    const handleQuickExit = useCallback(() => {
+      setExploring(false);
+      stopSampling();
+      setGuidanceTarget(null);
+      traceService.finishTrace();
+      dispatch({ type: "SET_MODE", mode: "READING", modeId: null });
+      speak("Returning to reading mode.");
+    }, [dispatch, speak]);
+
+    const handleNextKeyPoint = useCallback(() => {
+      if (!visual) return;
+      if (visual.type === "line_graph") {
+        const gd = visual.data as LineGraphData;
+        const featureNames = Object.keys(gd.features).filter((k) => {
+          const pts = (gd.features as Record<string, unknown>)[k];
+          return Array.isArray(pts) && pts.length > 0;
+        });
+        if (featureNames.length > 0) {
+          const target = featureNames[0]!;
+          handleGuideTo(target);
+        } else {
+          speak("No key features found in this graph.");
+        }
+      } else if (visual.type === "flowchart") {
+        const fd = visual.data as FlowchartData;
+        if (fd.keyNodes.length > 0) {
+          const target = fd.keyNodes[0]!;
+          handleGuideTo(target);
+        } else {
+          speak("No key nodes found in this flowchart.");
+        }
+      }
+    }, [visual, speak, handleGuideTo]);
+
     // Expose intent handler to parent via ref
     useImperativeHandle(ref, () => ({
       handleVisualIntent(intent: string, payload?: string) {
@@ -203,9 +259,15 @@ const VisualView = forwardRef<VisualViewHandle, Props>(
           case "IM_DONE":
             handleImDone();
             break;
+          case "QUICK_EXIT_VISUAL":
+            handleQuickExit();
+            break;
+          case "NEXT_KEY_POINT":
+            handleNextKeyPoint();
+            break;
         }
       },
-    }), [handleStartExploring, handleWhatIsHere, handleMarkThis, handleGuideTo, handleImDone]);
+    }), [handleStartExploring, handleWhatIsHere, handleMarkThis, handleGuideTo, handleImDone, handleQuickExit, handleNextKeyPoint]);
 
     if (!visual) {
       return <p style={{ fontSize: "1.5rem", color: "#888" }}>Visual not found.</p>;
