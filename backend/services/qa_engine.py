@@ -14,15 +14,13 @@ def _score_chunk(chunk: Chunk, question_tokens: set[str]) -> int:
     return len(question_tokens & chunk_tokens)
 
 
-def answer_question(
+def retrieve_top_chunks(
     question: str,
     chunks: list[Chunk],
     page_no: int | None = None,
-) -> QAResponse:
-    """
-    Simple lexical retrieval QA.
-    Scores chunks by keyword overlap, picks top matches, composes a grounded answer.
-    """
+    top_n: int = 5,
+) -> list[Chunk]:
+    """Retrieve top N chunks by keyword overlap for use as AI context."""
     question_tokens = _tokenize(question)
 
     # Prefer chunks on the current page first
@@ -31,7 +29,6 @@ def answer_question(
     else:
         page_chunks = []
 
-    # Score page chunks first, fall back to all chunks
     candidates = page_chunks if page_chunks else chunks
 
     scored = [(c, _score_chunk(c, question_tokens)) for c in candidates]
@@ -42,8 +39,19 @@ def answer_question(
         scored = [(c, _score_chunk(c, question_tokens)) for c in chunks]
         scored.sort(key=lambda x: x[1], reverse=True)
 
-    # Take top 1-2 relevant chunks
-    top = [item for item in scored if item[1] > 0][:2]
+    return [item[0] for item in scored if item[1] > 0][:top_n]
+
+
+def answer_question(
+    question: str,
+    chunks: list[Chunk],
+    page_no: int | None = None,
+) -> QAResponse:
+    """
+    Simple lexical retrieval QA (deterministic fallback).
+    Scores chunks by keyword overlap, picks top matches, composes a grounded answer.
+    """
+    top = retrieve_top_chunks(question, chunks, page_no, top_n=2)
 
     if not top:
         return QAResponse(
@@ -51,10 +59,9 @@ def answer_question(
             citations=[],
         )
 
-    # Compose answer from top chunks
     cited_texts = []
     citations = []
-    for chunk, _score in top:
+    for chunk in top:
         cited_texts.append(chunk.text)
         citations.append(QACitation(pageNo=chunk.pageNo, chunkId=chunk.chunkId))
 
