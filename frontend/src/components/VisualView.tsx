@@ -215,6 +215,34 @@ const VisualView = forwardRef<VisualViewHandle, Props>(
       speak("Returning to reading mode.");
     }, [dispatch, speak]);
 
+    const handleDescribeVisual = useCallback(() => {
+      if (!visual) return;
+      let description = `${visual.title}. ${visual.description}.`;
+
+      if (visual.type === "line_graph") {
+        const gd = visual.data as LineGraphData;
+        const yValues = gd.points.map((p) => p[1]);
+        const yMin = Math.min(...yValues);
+        const yMax = Math.max(...yValues);
+        const featureNames = Object.keys(gd.features).filter((k) => {
+          const pts = (gd.features as Record<string, unknown>)[k];
+          return Array.isArray(pts) && pts.length > 0;
+        });
+        description += ` This is a line graph. ${gd.xLabel} ranges from ${gd.xMin} to ${gd.xMax}. ${gd.yLabel} ranges from ${yMin.toFixed(2)} to ${yMax.toFixed(2)}.`;
+        if (featureNames.length > 0) {
+          description += ` Key features: ${featureNames.join(", ")}.`;
+        }
+      } else if (visual.type === "flowchart") {
+        const fd = visual.data as FlowchartData;
+        description += ` This is a flowchart with ${fd.nodes.length} nodes and ${fd.edges.length} connections.`;
+        if (fd.keyNodes.length > 0) {
+          description += ` Key nodes: ${fd.keyNodes.join(", ")}.`;
+        }
+      }
+
+      speak(description);
+    }, [visual, speak]);
+
     const handleNextKeyPoint = useCallback(() => {
       if (!visual) return;
       if (visual.type === "line_graph") {
@@ -250,6 +278,9 @@ const VisualView = forwardRef<VisualViewHandle, Props>(
           case "WHAT_IS_HERE":
             handleWhatIsHere();
             break;
+          case "DESCRIBE_VISUAL":
+            handleDescribeVisual();
+            break;
           case "MARK_THIS":
             handleMarkThis();
             break;
@@ -267,7 +298,7 @@ const VisualView = forwardRef<VisualViewHandle, Props>(
             break;
         }
       },
-    }), [handleStartExploring, handleWhatIsHere, handleMarkThis, handleGuideTo, handleImDone, handleQuickExit, handleNextKeyPoint]);
+    }), [handleStartExploring, handleWhatIsHere, handleDescribeVisual, handleMarkThis, handleGuideTo, handleImDone, handleQuickExit, handleNextKeyPoint]);
 
     if (!visual) {
       return <p style={{ fontSize: "1.5rem", color: "#888" }}>Visual not found.</p>;
@@ -287,6 +318,25 @@ const VisualView = forwardRef<VisualViewHandle, Props>(
           {guidanceTarget && ` — Guiding to ${guidanceTarget.name}`}
         </p>
         <ExploreCanvas ref={canvasRef} visual={visual} />
+        {exploring && (
+          <button
+            onClick={handleImDone}
+            style={{
+              marginTop: "1rem",
+              padding: "1rem 2rem",
+              fontSize: "1.3rem",
+              fontWeight: "bold",
+              background: "#f07070",
+              color: "#fff",
+              border: "none",
+              borderRadius: "0.75rem",
+              cursor: "pointer",
+              width: "100%",
+            }}
+          >
+            Stop Exploring
+          </button>
+        )}
         <p style={{ color: "#888", marginTop: "0.5rem", fontSize: "0.9rem" }}>
           {visual.visualId} &middot; {visual.type}
         </p>

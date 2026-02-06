@@ -36,6 +36,7 @@ const SIMPLE_ACTIONS = new Set([
 const VISUAL_SPECIALS = new Set([
   "START_EXPLORING",
   "WHAT_IS_HERE",
+  "DESCRIBE_VISUAL",
   "MARK_THIS",
   "GUIDE_TO",
   "IM_DONE",
@@ -89,7 +90,7 @@ function TutorContent() {
           return;
         }
         visualRef.current?.handleVisualIntent(
-          payload as "START_EXPLORING" | "WHAT_IS_HERE" | "MARK_THIS" | "GUIDE_TO" | "IM_DONE" | "NEXT_KEY_POINT",
+          payload as "START_EXPLORING" | "WHAT_IS_HERE" | "DESCRIBE_VISUAL" | "MARK_THIS" | "GUIDE_TO" | "IM_DONE" | "NEXT_KEY_POINT",
           typeof result.payload === "string" ? undefined : String(result.payload)
         );
       }

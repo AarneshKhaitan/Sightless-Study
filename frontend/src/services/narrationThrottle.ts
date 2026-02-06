@@ -1,6 +1,6 @@
 import * as tts from "./tts";
 
-const MIN_GAP_MS = 1500;
+const MIN_GAP_MS = 3000;
 let lastSpokenRegion: string | null = null;
 let lastSpokeAt = 0;
 

@@ -1,5 +1,5 @@
 """
-Central AI provider using Groq (Llama 3.3 70B).
+Central AI provider using OpenAI.
 All AI features funnel through this module.
 Falls back gracefully when API key is missing or calls fail.
 """
@@ -22,13 +22,13 @@ def get_ai_provider() -> "AIProvider | None":
 
 def init_ai_provider() -> None:
     global _provider
-    api_key = os.getenv("GROQ_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        logger.warning("GROQ_API_KEY not set — AI features will use template fallbacks")
+        logger.warning("OPENAI_API_KEY not set — AI features will use template fallbacks")
         return
     try:
         _provider = AIProvider(api_key)
-        logger.info("AI provider initialized with Groq")
+        logger.info("AI provider initialized with OpenAI")
     except Exception as e:
         logger.error("Failed to initialize AI provider: %s", e)
         _provider = None
@@ -47,10 +47,10 @@ def _parse_json(text: str) -> dict[str, Any]:
 
 class AIProvider:
     def __init__(self, api_key: str):
-        from langchain_groq import ChatGroq
+        from langchain_openai import ChatOpenAI
 
-        model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-        self.llm = ChatGroq(
+        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        self.llm = ChatOpenAI(
             model=model,
             api_key=api_key,
             temperature=0.3,

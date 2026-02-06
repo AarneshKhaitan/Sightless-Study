@@ -13,7 +13,7 @@ from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import tool
-from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 
 from models import VoiceState
@@ -41,14 +41,14 @@ def _get_context() -> dict[str, Any]:
 def reading_control(command: str) -> str:
     """Control the reading flow. Use this when the student wants to navigate through the document.
 
-    Commands:
-    - "next": advance to next chunk
-    - "back": go to previous chunk
-    - "where_am_i": tell the student their current position
-    - "repeat": repeat the current chunk
-    - "help": list available commands
-    - "stop": stop speaking
-    - "summarize": summarize the current page
+    Commands (pass EXACTLY one of these strings):
+    - "next": advance to next chunk. Use for: continue, next, keep going, go on, move on, go ahead, carry on.
+    - "back": go to previous chunk. Use for: go back, back, previous.
+    - "where_am_i": tell current position. Use for: where am I, what page, current position.
+    - "repeat": repeat current chunk. Use for: repeat, say that again, again, one more time.
+    - "help": list available commands. Use for: help, options, what can I say.
+    - "stop": stop speaking. Use for: stop, quiet, silence, pause, shut up.
+    - "summarize": summarize the current page. Use for: summarize, summary, overview.
     """
     st = _get_state()
     ctx = _get_context()
@@ -184,6 +184,7 @@ def visual_control(command: str, target: str = "") -> str:
     Commands:
     - "start_exploring": begin visual exploration
     - "what_is_here": describe what's at the current pointer position
+    - "describe": give an overall description/summary of the graph or visual
     - "mark": mark the current point
     - "guide_to": guide the student to a specific feature (provide target)
     - "next_key_point": move to the next key feature
@@ -201,6 +202,13 @@ def visual_control(command: str, target: str = "") -> str:
         return json.dumps({
             "action": None,
             "special": "WHAT_IS_HERE",
+            "speech": None,
+        })
+
+    if command == "describe":
+        return json.dumps({
+            "action": None,
+            "special": "DESCRIBE_VISUAL",
             "speech": None,
         })
 
@@ -253,12 +261,12 @@ def _get_agent():
     if _agent is not None:
         return _agent
 
-    api_key = os.getenv("GROQ_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         return None
 
-    model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-    llm = ChatGroq(
+    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    llm = ChatOpenAI(
         model=model,
         api_key=api_key,
         temperature=0.2,
@@ -276,20 +284,49 @@ def _get_agent():
 def _build_system_prompt(state: VoiceState, context: dict[str, Any]) -> str:
     chunk_text = context.get("chunk_text", "")
     mode = state.mode
+
+    if mode == "FORMULA":
+        mode_block = """The current mode is FORMULA. Use formula_control for:
+- "continue"/"next"/"keep going" -> formula_control(command="continue") to EXIT formula mode
+- "symbols" -> formula_control(command="symbols")
+- "example" -> formula_control(command="example")
+- "intuition"/"simple"/"break it down" -> formula_control(command="intuition")
+- "go back"/"back" -> reading_control(command="back")"""
+    elif mode == "VISUAL":
+        mode_block = """The current mode is VISUAL. Use visual_control for:
+- "start exploring"/"explore" -> visual_control(command="start_exploring")
+- "what is here"/"what's here" -> visual_control(command="what_is_here")
+- "describe"/"describe the graph"/"tell me about this graph"/"summarize"/"what is this" -> visual_control(command="describe")
+- "mark this"/"mark" -> visual_control(command="mark")
+- "guide me to X" -> visual_control(command="guide_to", target="X")
+- "I'm done"/"done"/"finished"/"continue"/"stop" -> visual_control(command="done")
+- "next key point" -> visual_control(command="next_key_point")
+- "go back"/"exit" -> visual_control(command="quick_exit")"""
+    else:
+        mode_block = """The current mode is READING. Use reading_control for:
+- "continue"/"next"/"keep going"/"go on"/"move on"/"carry on" -> reading_control(command="next")
+- "go back"/"back"/"previous" -> reading_control(command="back")
+- "where am I"/"what page" -> reading_control(command="where_am_i")
+- "repeat"/"again"/"say that again" -> reading_control(command="repeat")
+- "help"/"options"/"what can I say" -> reading_control(command="help")
+- "stop"/"quiet"/"silence" -> reading_control(command="stop")
+- "summarize"/"summary" -> reading_control(command="summarize")"""
+
+    formula_info = f"\nFormula step: {state.formulaStep}" if state.formulaStep else ""
+    text_info = f'\nCurrent text: "{chunk_text[:200]}"' if chunk_text else ""
+
     return f"""You are an accessibility-first tutor controlling a voice-first reading app for visually impaired students.
 
-Current state: mode={mode}, page {state.pageNo}, chunk {state.chunkIndex + 1}.
-{f'Formula step: {state.formulaStep}' if state.formulaStep else ''}
-{f'Current text: "{chunk_text[:200]}"' if chunk_text else ''}
+Current state: mode={mode}, page {state.pageNo}, chunk {state.chunkIndex + 1}.{formula_info}{text_info}
 
-Given the student's voice command, decide which tool to call:
-- reading_control: for navigation (next, back, where am i, repeat, help, stop, summarize)
-- ask_question: when the student asks a question about the content
-- formula_control: for formula mode commands (symbols, example, intuition, continue){' — CURRENT MODE' if mode == 'FORMULA' else ''}
-- visual_control: for visual exploration commands (start exploring, what is here, mark, guide to, done){' — CURRENT MODE' if mode == 'VISUAL' else ''}
+Given the student's voice command, decide which tool to call.
+
+{mode_block}
+
+Use ask_question when the student asks about the content (e.g. "what does this mean", "explain this", questions starting with what/how/why).
 
 If the command is conversational or doesn't match any tool, respond directly in 1-2 spoken sentences.
-Keep all responses concise — they will be spoken aloud.
+Keep all responses concise -- they will be spoken aloud.
 IMPORTANT: Always respond. Never return empty."""
 
 

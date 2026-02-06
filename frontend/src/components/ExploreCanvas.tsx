@@ -40,6 +40,7 @@ const ExploreCanvas = forwardRef<ExploreCanvasHandle, Props>(
     return (
       <div
         ref={containerRef}
+        data-no-tap
         style={{
           width: "100%",
           height: "60vh",
