@@ -31,7 +31,13 @@ function TutorContent() {
 
       // Dispatch reducer action if present
       if (intent.action) {
-        dispatch(intent.action);
+        // If in QA mode (returnPosition set) and user says "Continue",
+        // exit QA to restore reading position instead of advancing chunk
+        if (intent.action.type === "NEXT_CHUNK" && state.returnPosition) {
+          dispatch({ type: "EXIT_QA" });
+        } else {
+          dispatch(intent.action);
+        }
       }
 
       // Handle special intents
