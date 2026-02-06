@@ -100,7 +100,7 @@ Open <http://localhost:5173> in your browser.
 
 ### Demo Mode
 
-Upload the included `data/demo.pdf` through the app to try it with a pre-built 4-page lecture covering:
+Upload the included `demo.pdf` through the app to try it with a sample 4-page lecture covering:
 
 1. Reading mode (Gradient Descent overview)
 2. Formula tutor (Softmax function)
@@ -138,8 +138,8 @@ Upload the included `data/demo.pdf` through the app to try it with a pre-built 4
 │       ├── qa_engine.py     # Grounded Q&A
 │       └── reflection.py    # Visual exploration reflection
 │
-├── data/                    # Demo data (JSON manifests & modules)
-└── docs/                    # Product specs & architecture docs
+├── data/                    # Processed document storage
+└── demo.pdf                 # Sample lecture PDF for testing
 ```
 
 ## API Endpoints
