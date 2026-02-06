@@ -1,5 +1,5 @@
 """
-Central AI provider using LangGraph + Google Gemini (gemini-2.5-pro).
+Central AI provider using Groq (Llama 3.3 70B).
 All AI features funnel through this module.
 Falls back gracefully when API key is missing or calls fail.
 """
@@ -22,13 +22,13 @@ def get_ai_provider() -> "AIProvider | None":
 
 def init_ai_provider() -> None:
     global _provider
-    api_key = os.getenv("GOOGLE_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
-        logger.warning("GOOGLE_API_KEY not set — AI features will use template fallbacks")
+        logger.warning("GROQ_API_KEY not set — AI features will use template fallbacks")
         return
     try:
         _provider = AIProvider(api_key)
-        logger.info("AI provider initialized with Gemini")
+        logger.info("AI provider initialized with Groq")
     except Exception as e:
         logger.error("Failed to initialize AI provider: %s", e)
         _provider = None
@@ -47,13 +47,16 @@ def _parse_json(text: str) -> dict[str, Any]:
 
 class AIProvider:
     def __init__(self, api_key: str):
-        from langchain_google_genai import ChatGoogleGenerativeAI
+        from langchain_groq import ChatGroq
 
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-pro",
-            google_api_key=api_key,
+        model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+        self.llm = ChatGroq(
+            model=model,
+            api_key=api_key,
             temperature=0.3,
+            max_retries=1,
         )
+        logger.info("Using model: %s", model)
 
     async def _invoke(self, prompt: str) -> str:
         """Invoke the LLM and return raw text."""
