@@ -92,13 +92,42 @@ export async function chat(
   docId: string,
   message: string,
   context?: string
-): Promise<{ reply: string }> {
+): Promise<{ reply: string; aiGenerated: boolean }> {
   const res = await fetch(`${BASE}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ docId, message, context: context ?? "" }),
   });
   if (!res.ok) throw new Error(`Chat error ${res.status}`);
+  return res.json();
+}
+
+export interface VoiceResult {
+  transcript: string;
+  action: string | null;
+  payload: unknown;
+  speech: string | null;
+}
+
+export async function sendVoice(
+  audio: Blob,
+  state: {
+    docId: string;
+    pageNo: number;
+    chunkIndex: number;
+    mode: string;
+    modeId: string | null;
+    formulaStep: string | null;
+  }
+): Promise<VoiceResult> {
+  const form = new FormData();
+  form.append("audio", audio, "recording.webm");
+  form.append("state", JSON.stringify(state));
+  const res = await fetch(`${BASE}/voice`, {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) throw new Error(`Voice error ${res.status}`);
   return res.json();
 }
 

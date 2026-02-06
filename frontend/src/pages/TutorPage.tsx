@@ -1,10 +1,8 @@
 import { useCallback, useRef, useState } from "react";
-import type { Chunk, DocumentManifest, FormulaModule, VisualModule } from "../types";
+import type { Chunk, DocumentManifest, FormulaModule, TutorMode, VisualModule } from "../types";
 import { TutorProvider, useTutor } from "../context/TutorContext";
 import { useVoice } from "../hooks/useVoice";
-import type { ParsedIntent } from "../services/intentParser";
-import * as tts from "../services/tts";
-import { askQuestion, chat } from "../api/client";
+import type { VoiceResult } from "../api/client";
 import VoiceStatus from "../components/VoiceStatus";
 import ReadingView from "../components/ReadingView";
 import FormulaView from "../components/FormulaView";
@@ -18,118 +16,106 @@ interface Props {
   visuals: VisualModule[];
 }
 
+// Map orchestrator action strings to reducer dispatch calls
+const SIMPLE_ACTIONS = new Set([
+  "NEXT_CHUNK",
+  "PREV_CHUNK",
+  "ENTER_QA",
+  "EXIT_QA",
+  "FORMULA_SYMBOLS",
+  "FORMULA_EXAMPLE",
+  "FORMULA_INTUITION",
+  "FORMULA_NEXT_STEP",
+  "FORMULA_PREV_STEP",
+  "ENTER_EXPLORE",
+  "EXIT_EXPLORE",
+  "MARK_POINT",
+]);
+
+// Visual-mode special commands handled by VisualView
+const VISUAL_SPECIALS = new Set([
+  "START_EXPLORING",
+  "WHAT_IS_HERE",
+  "MARK_THIS",
+  "GUIDE_TO",
+  "IM_DONE",
+  "NEXT_KEY_POINT",
+  "QUICK_EXIT_VISUAL",
+]);
+
 function TutorContent() {
-  const { state, currentChunk, pageChunks, manifest, dispatch } = useTutor();
+  const { state, pageChunks, manifest, dispatch } = useTutor();
   const visualRef = useRef<VisualViewHandle>(null);
   const [hasStarted, setHasStarted] = useState(false);
 
-  // Use a ref for speak so handleIntent always has the latest version
   const speakRef = useRef<(text: string) => Promise<void>>(async () => {});
 
-  const handleIntent = useCallback(
-    (intent: ParsedIntent, _transcript: string) => {
+  const handleVoiceResult = useCallback(
+    (result: VoiceResult) => {
       const doSpeak = speakRef.current;
+      const { action, payload, speech } = result;
 
-      // Dispatch reducer action if present
-      if (intent.action) {
-        // If in QA mode (returnPosition set) and user says "Continue",
-        // exit QA to restore reading position instead of advancing chunk
-        if (intent.action.type === "NEXT_CHUNK" && state.returnPosition) {
-          dispatch({ type: "EXIT_QA" });
-        } else {
-          dispatch(intent.action);
+      // Dispatch reducer action
+      if (action) {
+        if (SIMPLE_ACTIONS.has(action)) {
+          // Handle QA exit on NEXT_CHUNK if returnPosition exists
+          if (action === "NEXT_CHUNK" && state.returnPosition) {
+            dispatch({ type: "EXIT_QA" });
+          } else {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            dispatch({ type: action } as any);
+          }
+        } else if (action === "SET_MODE" && payload && typeof payload === "object") {
+          const p = payload as Record<string, unknown>;
+          dispatch({
+            type: "SET_MODE",
+            mode: ((p.mode as string) ?? "READING") as TutorMode,
+            modeId: (p.modeId as string) ?? null,
+          });
+        } else if (action === "START_GUIDANCE" && payload) {
+          dispatch({ type: "START_GUIDANCE", target: String(payload) });
+        } else if (action === "SUMMARIZE") {
+          const pageText = pageChunks.map((c) => c.text).join(" ");
+          doSpeak(`Summary of this page: ${pageText}`);
+          return; // Don't speak again below
         }
       }
 
-      // Handle special intents
-      switch (intent.special) {
-        case "WHERE_AM_I":
-          doSpeak(
-            `Page ${state.pageNo}, chunk ${state.chunkIndex + 1} of ${pageChunks.length}. ${currentChunk?.text ?? "No content here."}`
-          );
-          break;
-        case "REPEAT":
-          if (currentChunk) {
-            doSpeak(currentChunk.text);
-          }
-          break;
-        case "HELP":
-          if (state.mode === "READING") {
-            doSpeak(
-              "You can say Continue, Repeat, Question, Summarize this page, Where am I, Go back, or Stop."
-            );
-          } else if (state.mode === "FORMULA") {
-            doSpeak(
-              "You can say Symbols, Example, Intuition, Repeat, or Continue."
-            );
-          } else if (state.mode === "VISUAL") {
-            doSpeak(
-              "You can say Start exploring, What is here, Mark this, Guide me to minimum or peak, Next key point, or I'm done."
-            );
-          }
-          break;
-        case "STOP":
-          tts.stop();
-          break;
-        case "QUESTION":
-          {
-            const questionText = intent.payload ?? "what does this mean?";
-            const chunkId = currentChunk?.chunkId ?? "p1-c1";
-            doSpeak("Let me look that up.");
-            askQuestion(state.docId, state.pageNo, chunkId, questionText)
-              .then((res) => {
-                const citationStr = res.citations
-                  .map((c) => c.chunkId)
-                  .join(", ");
-                speakRef.current(
-                  `${res.answer}. Citations: ${citationStr}. Say Continue to return to your reading.`
-                );
-              })
-              .catch(() => {
-                speakRef.current(
-                  "Sorry, I couldn't find an answer. Say Continue to go back."
-                );
-              });
-          }
-          break;
-        case "SUMMARIZE":
-          {
-            const pageText = pageChunks.map((c) => c.text).join(" ");
-            doSpeak(`Summary of this page: ${pageText}`);
-          }
-          break;
-        case "START_EXPLORING":
-        case "WHAT_IS_HERE":
-        case "MARK_THIS":
-        case "GUIDE_TO":
-        case "IM_DONE":
-        case "NEXT_KEY_POINT":
-          visualRef.current?.handleVisualIntent(intent.special, intent.payload);
-          break;
-        case "QUICK_EXIT_VISUAL":
+      // Handle visual-mode special commands via payload
+      if (payload && typeof payload === "string" && VISUAL_SPECIALS.has(payload)) {
+        if (payload === "QUICK_EXIT_VISUAL") {
           dispatch({ type: "SET_MODE", mode: "READING", modeId: null });
           doSpeak("Returning to reading mode.");
-          break;
-        case "UNRECOGNIZED":
-          {
-            const msg = intent.payload ?? "";
-            const ctx = currentChunk?.text ?? "";
-            chat(state.docId, msg, ctx)
-              .then((res) => speakRef.current(res.reply))
-              .catch(() => speakRef.current("I didn't catch that. Say Help to hear your options."));
-          }
-          break;
-        default:
-          break;
+          return;
+        }
+        visualRef.current?.handleVisualIntent(
+          payload as "START_EXPLORING" | "WHAT_IS_HERE" | "MARK_THIS" | "GUIDE_TO" | "IM_DONE" | "NEXT_KEY_POINT",
+          typeof result.payload === "string" ? undefined : String(result.payload)
+        );
+      }
+
+      // Speak the response
+      if (speech) {
+        doSpeak(speech);
       }
     },
-    [state, currentChunk, pageChunks, dispatch]
+    [state, pageChunks, dispatch]
   );
 
-  const voice = useVoice(handleIntent, hasStarted);
-
-  // Keep speakRef in sync
+  const voice = useVoice(handleVoiceResult, hasStarted);
   speakRef.current = voice.speak;
+
+  const handleTap = useCallback(
+    (e: React.PointerEvent) => {
+      // Don't intercept clicks on buttons or interactive elements
+      const target = e.target as HTMLElement;
+      if (target.closest("button") || target.closest("[data-no-tap]")) {
+        return;
+      }
+      voice.interrupt();
+    },
+    [voice]
+  );
 
   if (!hasStarted) {
     return (
@@ -163,12 +149,15 @@ function TutorContent() {
 
   return (
     <div
+      onPointerDown={handleTap}
       style={{
         minHeight: "100vh",
         background: "#1a1a2e",
         color: "#eee",
         padding: "2rem",
         paddingBottom: "6rem",
+        cursor: "pointer",
+        userSelect: "none",
       }}
     >
       <VoiceStatus state={voice.voiceState} lastTranscript={voice.lastTranscript} />

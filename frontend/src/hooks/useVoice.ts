@@ -1,71 +1,101 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTutor } from "../context/TutorContext";
 import * as tts from "../services/tts";
-import * as asr from "../services/asr";
-import { parseIntent, type ParsedIntent } from "../services/intentParser";
+import * as recorder from "../services/recorder";
+import { sendVoice, type VoiceResult } from "../api/client";
 
-export type VoiceState = "SPEAKING" | "LISTENING" | "EXECUTING" | "IDLE";
+export type VoiceState = "IDLE" | "RECORDING" | "PROCESSING" | "SPEAKING";
 
-interface UseVoiceReturn {
+export interface UseVoiceReturn {
   voiceState: VoiceState;
   speak: (text: string) => Promise<void>;
   lastTranscript: string;
+  interrupt: () => void;
 }
 
 export function useVoice(
-  onIntent: (intent: ParsedIntent, transcript: string) => void,
+  onVoiceResult: (result: VoiceResult) => void,
   enabled = true
 ): UseVoiceReturn {
   const { state } = useTutor();
   const [voiceState, setVoiceState] = useState<VoiceState>("IDLE");
   const [lastTranscript, setLastTranscript] = useState("");
-  const onIntentRef = useRef(onIntent);
-  onIntentRef.current = onIntent;
+  const onResultRef = useRef(onVoiceResult);
+  onResultRef.current = onVoiceResult;
   const stateRef = useRef(state);
   stateRef.current = state;
+  const busyRef = useRef(false);
 
-  const speakAndResume = useCallback(async (text: string) => {
-    asr.pauseListening();
+  const speak = useCallback(async (text: string) => {
     setVoiceState("SPEAKING");
     try {
       await tts.speak(text);
     } finally {
-      // Wait 500ms after TTS finishes before resuming ASR
-      // to prevent the microphone from picking up the tail end of speech
-      await new Promise((r) => setTimeout(r, 500));
-      setVoiceState("LISTENING");
-      asr.resumeListening();
+      setVoiceState("IDLE");
     }
   }, []);
 
-  // Handle ASR results
-  const handleTranscript = useCallback(
-    (transcript: string) => {
-      setLastTranscript(transcript);
-      const intent = parseIntent(transcript, stateRef.current.mode);
+  const processRecording = useCallback(async () => {
+    if (!recorder.isRecording()) return;
 
-      setVoiceState("EXECUTING");
-      onIntentRef.current(intent, transcript);
-    },
-    [speakAndResume]
-  );
+    try {
+      const blob = await recorder.stopRecording();
+      setVoiceState("PROCESSING");
 
-  // Start ASR when enabled
-  useEffect(() => {
-    if (!enabled) return;
-    if (asr.isASRSupported()) {
-      asr.startListening(handleTranscript);
-      setVoiceState("LISTENING");
+      const s = stateRef.current;
+      const result = await sendVoice(blob, {
+        docId: s.docId,
+        pageNo: s.pageNo,
+        chunkIndex: s.chunkIndex,
+        mode: s.mode,
+        modeId: s.modeId,
+        formulaStep: s.formulaStep,
+      });
+
+      setLastTranscript(result.transcript);
+      onResultRef.current(result);
+    } catch (err) {
+      console.error("Voice processing error:", err);
+      setVoiceState("IDLE");
     }
-    return () => {
-      asr.stopListening();
+  }, []);
+
+  const startRecordingFlow = useCallback(async () => {
+    if (!enabled || busyRef.current) return;
+    busyRef.current = true;
+
+    try {
+      await recorder.startRecording();
+      setVoiceState("RECORDING");
+    } catch (err) {
+      console.error("Mic error:", err);
+      setVoiceState("IDLE");
+    } finally {
+      busyRef.current = false;
+    }
+  }, [enabled]);
+
+  const interrupt = useCallback(() => {
+    if (!enabled) return;
+
+    if (voiceState === "SPEAKING") {
+      // Cancel TTS and start recording
       tts.stop();
-    };
-  }, [handleTranscript, enabled]);
+      startRecordingFlow();
+    } else if (voiceState === "IDLE") {
+      // Start recording
+      startRecordingFlow();
+    } else if (voiceState === "RECORDING") {
+      // Stop recording and process
+      processRecording();
+    }
+    // If PROCESSING, ignore tap (waiting for backend)
+  }, [voiceState, enabled, startRecordingFlow, processRecording]);
 
   return {
     voiceState,
-    speak: speakAndResume,
+    speak,
     lastTranscript,
+    interrupt,
   };
 }

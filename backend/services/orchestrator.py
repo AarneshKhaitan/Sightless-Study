@@ -156,7 +156,8 @@ def formula_control(command: str) -> str:
 
     if command == "continue":
         return json.dumps({
-            "action": "EXIT_FORMULA",
+            "action": "SET_MODE",
+            "payload": {"mode": "READING", "modeId": None},
             "speech": "Returning to reading.",
         })
 
@@ -164,7 +165,7 @@ def formula_control(command: str) -> str:
         "symbols": "FORMULA_SYMBOLS",
         "example": "FORMULA_EXAMPLE",
         "intuition": "FORMULA_INTUITION",
-        "purpose": "FORMULA_PURPOSE",
+        "purpose": "FORMULA_NEXT_STEP",
     }
     action = step_map.get(command)
     if action:

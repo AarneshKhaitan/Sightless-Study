@@ -9,9 +9,9 @@ interface Props {
 
 const stateStyles: Record<VoiceState, { bg: string; label: string }> = {
   SPEAKING: { bg: "#f07070", label: "Speaking" },
-  LISTENING: { bg: "#4cc9f0", label: "Listening" },
-  EXECUTING: { bg: "#f0c040", label: "Executing" },
-  IDLE: { bg: "#555", label: "Idle" },
+  RECORDING: { bg: "#ff4444", label: "Recording — tap to send" },
+  PROCESSING: { bg: "#f0c040", label: "Processing..." },
+  IDLE: { bg: "#555", label: "Tap anywhere to speak" },
 };
 
 export default function VoiceStatus({ state, lastTranscript }: Props) {
@@ -20,7 +20,7 @@ export default function VoiceStatus({ state, lastTranscript }: Props) {
 
   useEffect(() => {
     if (prevState.current === state) return;
-    if (state === "LISTENING") earconListening();
+    if (state === "RECORDING") earconListening();
     else if (state === "SPEAKING") earconSpeaking();
     prevState.current = state;
   }, [state]);
@@ -46,6 +46,7 @@ export default function VoiceStatus({ state, lastTranscript }: Props) {
           borderRadius: "8px",
           fontSize: "1.1rem",
           fontWeight: "bold",
+          animation: state === "RECORDING" ? "pulse 1s infinite" : undefined,
         }}
       >
         {label}
@@ -65,6 +66,12 @@ export default function VoiceStatus({ state, lastTranscript }: Props) {
           "{lastTranscript}"
         </div>
       )}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+      `}</style>
     </div>
   );
 }
