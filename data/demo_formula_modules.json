@@ -1,0 +1,17 @@
+{
+  "docId": "demo-001",
+  "formulas": [
+    {
+      "formulaId": "f1",
+      "pageNo": 2,
+      "expression": "softmax(z_i) = exp(z_i) / sum_j exp(z_j)",
+      "purpose": "Turns scores into a probability distribution over classes.",
+      "symbols": [
+        { "sym": "z_i", "meaning": "score (logit) for class i" },
+        { "sym": "exp", "meaning": "exponential function" },
+        { "sym": "sum_j", "meaning": "sum over all classes j" }
+      ],
+      "example": "If scores are [2, 1, 0], exponentiate to [e^2, e^1, e^0] and divide each by their sum."
+    }
+  ]
+}

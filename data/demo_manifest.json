@@ -1,0 +1,22 @@
+{
+  "docId": "demo-001",
+  "title": "Demo Lecture: Gradient Descent & Softmax",
+  "pages": [
+    { "pageNo": 1, "modules": [] },
+    { "pageNo": 2, "modules": [{ "type": "formula", "id": "f1" }] },
+    { "pageNo": 3, "modules": [{ "type": "visual", "id": "v1" }] },
+    { "pageNo": 4, "modules": [{ "type": "visual", "id": "v2" }] }
+  ],
+  "outline": [
+    { "id": "s1", "title": "Gradient Descent: Intuition", "startPage": 1, "endPage": 1 },
+    { "id": "s2", "title": "Softmax", "startPage": 2, "endPage": 2 },
+    { "id": "s3", "title": "Training Loss Curve", "startPage": 3, "endPage": 3 },
+    { "id": "s4", "title": "Model Pipeline", "startPage": 4, "endPage": 4 }
+  ],
+  "source": {
+    "type": "upload",
+    "displayName": "demo.pdf",
+    "externalId": null,
+    "lastSyncedAt": "2026-02-06T00:00:00Z"
+  }
+}

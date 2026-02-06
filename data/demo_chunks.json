@@ -1,0 +1,68 @@
+{
+  "docId": "demo-001",
+  "chunks": [
+    {
+      "chunkId": "p1-c1",
+      "pageNo": 1,
+      "order": 1,
+      "type": "heading",
+      "text": "Gradient Descent: Intuition"
+    },
+    {
+      "chunkId": "p1-c2",
+      "pageNo": 1,
+      "order": 2,
+      "type": "paragraph",
+      "text": "Gradient descent is an optimization method that iteratively updates parameters to reduce a loss function."
+    },
+    {
+      "chunkId": "p1-c3",
+      "pageNo": 1,
+      "order": 3,
+      "type": "paragraph",
+      "text": "The gradient points in the direction of steepest increase, so moving opposite the gradient typically decreases the loss."
+    },
+    {
+      "chunkId": "p2-c1",
+      "pageNo": 2,
+      "order": 1,
+      "type": "heading",
+      "text": "Softmax"
+    },
+    {
+      "chunkId": "p2-c2",
+      "pageNo": 2,
+      "order": 2,
+      "type": "paragraph",
+      "text": "Softmax converts a vector of scores into probabilities by exponentiating and normalizing."
+    },
+    {
+      "chunkId": "p3-c1",
+      "pageNo": 3,
+      "order": 1,
+      "type": "heading",
+      "text": "Training Loss Curve"
+    },
+    {
+      "chunkId": "p3-c2",
+      "pageNo": 3,
+      "order": 2,
+      "type": "caption",
+      "text": "Loss decreases quickly early on and then flattens as training converges."
+    },
+    {
+      "chunkId": "p4-c1",
+      "pageNo": 4,
+      "order": 1,
+      "type": "heading",
+      "text": "Model Pipeline"
+    },
+    {
+      "chunkId": "p4-c2",
+      "pageNo": 4,
+      "order": 2,
+      "type": "caption",
+      "text": "A simple pipeline: input text is tokenized, encoded, and then classified."
+    }
+  ]
+}

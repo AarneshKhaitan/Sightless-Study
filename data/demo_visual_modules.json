@@ -1,0 +1,125 @@
+{
+  "docId": "demo-001",
+  "visuals": [
+    {
+      "visualId": "v1",
+      "pageNo": 3,
+      "type": "line_graph",
+      "title": "Loss vs Epochs",
+      "description": "A line graph where loss decreases over training epochs and gradually flattens.",
+      "data": {
+        "xMin": 0,
+        "xMax": 50,
+        "xLabel": "Epoch",
+        "yLabel": "Loss",
+        "points": [
+          [0, 1.08],
+          [1, 1.0016],
+          [2, 0.934],
+          [3, 0.8756],
+          [4, 0.8251],
+          [5, 0.7813],
+          [6, 0.7434],
+          [7, 0.7106],
+          [8, 0.6821],
+          [9, 0.6573],
+          [10, 0.6357],
+          [11, 0.6168],
+          [12, 0.6004],
+          [13, 0.5861],
+          [14, 0.5736],
+          [15, 0.5627],
+          [16, 0.5531],
+          [17, 0.5447],
+          [18, 0.5374],
+          [19, 0.531],
+          [20, 0.5254],
+          [21, 0.5205],
+          [22, 0.5162],
+          [23, 0.5124],
+          [24, 0.5091],
+          [25, 0.5061],
+          [26, 0.5035],
+          [27, 0.5012],
+          [28, 0.4992],
+          [29, 0.4974],
+          [30, 0.4958],
+          [31, 0.4944],
+          [32, 0.4932],
+          [33, 0.4921],
+          [34, 0.4911],
+          [35, 0.4903],
+          [36, 0.4895],
+          [37, 0.4888],
+          [38, 0.4882],
+          [39, 0.4877],
+          [40, 0.4872],
+          [41, 0.4868],
+          [42, 0.4864],
+          [43, 0.486],
+          [44, 0.4857],
+          [45, 0.4854],
+          [46, 0.4852],
+          [47, 0.485],
+          [48, 0.4848],
+          [49, 0.4846],
+          [50, 0.4844]
+        ],
+        "features": {
+          "min": [{ "x": 50, "y": 0.4844 }],
+          "peak": [{ "x": 0, "y": 1.08 }],
+          "inflection": [{ "x": 12, "y": 0.6004 }]
+        }
+      }
+    },
+    {
+      "visualId": "v2",
+      "pageNo": 4,
+      "type": "flowchart",
+      "title": "Text Classification Pipeline",
+      "description": "A pipeline showing how text moves through tokenization, encoding, and classification.",
+      "data": {
+        "nodes": [
+          {
+            "id": "n1",
+            "label": "Input Text",
+            "x": 0.15,
+            "y": 0.5,
+            "r": 0.08,
+            "desc": "Raw text provided by the user."
+          },
+          {
+            "id": "n2",
+            "label": "Tokenizer",
+            "x": 0.4,
+            "y": 0.5,
+            "r": 0.08,
+            "desc": "Splits text into tokens usable by the model."
+          },
+          {
+            "id": "n3",
+            "label": "Encoder",
+            "x": 0.65,
+            "y": 0.5,
+            "r": 0.08,
+            "desc": "Transforms tokens into vector representations."
+          },
+          {
+            "id": "n4",
+            "label": "Classifier",
+            "x": 0.85,
+            "y": 0.5,
+            "r": 0.08,
+            "desc": "Outputs the predicted class probabilities."
+          }
+        ],
+        "edges": [
+          ["n1", "n2"],
+          ["n2", "n3"],
+          ["n3", "n4"]
+        ],
+        "keyNodes": ["n2", "n4"]
+      }
+    }
+  ]
+}
